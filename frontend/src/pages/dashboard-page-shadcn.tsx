@@ -30,6 +30,7 @@ import {
   type SettingsSaveState,
 } from "@/components/app/game-settings-card"
 import { PageHeader } from "@/components/app/page-header"
+import { PageShell } from "@/components/app/page-shell"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -591,7 +592,7 @@ export function QuizPage() {
   if (isLoading || !data || !formState) return <DashboardSkeleton />
 
   return (
-    <div className="space-y-6">
+    <PageShell wide>
       <PageHeader title="Викторина" description="Конфиги вопросов и overlay для игры." />
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
@@ -692,7 +693,7 @@ export function QuizPage() {
       />
 
       <GameSettingsCard data={data} formState={formState} isSaving={settingsSaveState === "saving"} settingsSaveState={settingsSaveState} updateSettings={updateSettings} />
-    </div>
+    </PageShell>
   )
 }
 
@@ -1062,7 +1063,7 @@ function UploadConfigDialog({
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
+    <PageShell wide>
       <Skeleton className="h-16 w-96" />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Skeleton className="h-28 w-full" />
@@ -1071,7 +1072,7 @@ function DashboardSkeleton() {
         <Skeleton className="h-28 w-full" />
       </div>
       <Skeleton className="h-96 w-full" />
-    </div>
+    </PageShell>
   )
 }
 

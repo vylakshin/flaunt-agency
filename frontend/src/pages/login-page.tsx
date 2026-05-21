@@ -1,4 +1,4 @@
-import { Bot, LogIn, Radio, ShieldCheck, Sparkles, Zap } from "lucide-react"
+import { Bot, CircleHelp, LogIn, MessageSquareText, Radio, ShieldCheck, Sparkles, Timer, Trophy, Zap } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 
@@ -7,6 +7,15 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
+const features = [
+  { icon: CircleHelp, title: "Викторина", text: "Вопросы в чате и overlay для OBS" },
+  { icon: MessageSquareText, title: "Команды", text: "Кастомные команды и роли доступа" },
+  { icon: Timer, title: "Таймеры", text: "Автосообщения по расписанию стрима" },
+  { icon: Trophy, title: "Автоставка", text: "Predictions для Dota 2 и CS2" },
+  { icon: Bot, title: "Розыгрыши", text: "Giveaway прямо из панели" },
+  { icon: ShieldCheck, title: "Безопасность", text: "Вход через Twitch OAuth" },
+]
 
 export function LoginPage() {
   const [params] = useSearchParams()
@@ -17,81 +26,82 @@ export function LoginPage() {
     document.title = "Flaunt — вход"
   }, [])
 
-  const statusCards = useMemo(
-    () => [
-      { icon: Bot, label: "Бот", value: "Команды, таймеры и розыгрыши" },
-      { icon: Radio, label: "Чат", value: "Twitch EventSub без перезагрузок" },
-      { icon: ShieldCheck, label: "Доступ", value: "Свой канал и модераторские роли" },
-    ],
-    []
-  )
+  const highlights = useMemo(() => features.slice(0, 3), [])
 
   return (
-    <main className="login-mesh min-h-screen px-4 py-6 text-foreground sm:px-6 lg:px-8">
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl flex-col">
+    <main className="login-stage">
+      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 sm:px-8">
         <header className="flex items-center justify-between gap-4">
-          <BrandLogo />
+          <BrandLogo subtitle="Stream control panel" />
           <Badge variant="brand" className="hidden gap-1.5 sm:inline-flex">
             <Zap className="size-3" />
-            Twitch-инструменты
+            Twitch-native
           </Badge>
         </header>
 
-        <section className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[1.1fr_420px] lg:gap-14">
-          <div className="max-w-2xl space-y-8">
+        <div className="grid flex-1 items-center gap-12 py-10 lg:grid-cols-[1.15fr_400px] lg:gap-16">
+          <section className="space-y-8">
             <div className="space-y-4">
-              <Badge variant="outline">Всё для стрима в одном месте</Badge>
-              <h1 className="font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.25rem]">
-                Управляй каналом <span className="brand-gradient-text">без хаоса</span>
+              <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-primary">Flaunt agency</p>
+              <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-[3.35rem]">
+                Всё для стрима
+                <br />
+                <span className="brand-text">в одной панели</span>
               </h1>
-              <p className="max-w-xl text-base leading-7 text-muted-foreground">
-                Викторина, команды, розыгрыши, автоставки и таймеры — единая панель с быстрым доступом и понятной
-                структурой.
+              <p className="max-w-xl text-base leading-relaxed text-muted-foreground">
+                Викторина, команды, таймеры, розыгрыши и автоставки. Подключи игру через GSI — бот сам откроет и закроет
+                predictions.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">
-              {statusCards.map((item) => {
+              {highlights.map((item) => {
                 const Icon = item.icon
                 return (
-                  <Card key={item.label} className="border-border/60 bg-card/70">
-                    <CardContent className="space-y-3 p-4">
-                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <Icon className="size-5" />
-                      </div>
-                      <div>
-                        <div className="font-semibold">{item.label}</div>
-                        <div className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.value}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <div key={item.title} className="surface-panel-sm p-4">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                      <Icon className="size-5" />
+                    </div>
+                    <div className="mt-3 font-semibold">{item.title}</div>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.text}</p>
+                  </div>
                 )
               })}
             </div>
-          </div>
 
-          <Card className="border-border/70 bg-card/80 shadow-2xl backdrop-blur-xl">
+            <div className="hidden gap-3 lg:grid lg:grid-cols-2">
+              {features.slice(3).map((item) => {
+                const Icon = item.icon
+                return (
+                  <div key={item.title} className="flex items-center gap-3 rounded-xl border border-border/60 bg-card/40 px-4 py-3">
+                    <Icon className="size-4 text-primary" />
+                    <span className="text-sm font-medium">{item.title}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
+          <Card className="border-primary/20 shadow-2xl">
             <CardHeader className="space-y-4">
-              <div className="brand-gradient flex size-12 items-center justify-center rounded-2xl text-white shadow-lg">
+              <div className="brand-mark flex size-12 items-center justify-center rounded-2xl">
                 <Sparkles className="size-5" />
               </div>
               <div>
-                <CardTitle className="text-2xl">Вход через Twitch</CardTitle>
-                <CardDescription>
-                  Авторизация нужна, чтобы привязать канал и проверить права владельца или модератора.
-                </CardDescription>
+                <CardTitle className="text-2xl">Войти через Twitch</CardTitle>
+                <CardDescription>Нужны права владельца или модератора канала.</CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {error ? (
                 <Alert variant="destructive">
-                  <AlertTitle>Войти не получилось</AlertTitle>
+                  <AlertTitle>Ошибка входа</AlertTitle>
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               ) : null}
               {warning ? (
                 <Alert variant="warning">
-                  <AlertTitle>Проверь вход</AlertTitle>
+                  <AlertTitle>Проверь доступ</AlertTitle>
                   <AlertDescription>{warning}</AlertDescription>
                 </Alert>
               ) : null}
@@ -99,17 +109,24 @@ export function LoginPage() {
               <Button asChild variant="brand" size="lg" className="w-full">
                 <a href="/auth/twitch/login">
                   <LogIn className="size-5" />
-                  Войти через Twitch
+                  Продолжить с Twitch
                 </a>
               </Button>
 
-              <p className="text-center text-xs leading-5 text-muted-foreground">
-                После входа откроется дашборд выбранного канала. Каналы модератора доступны в переключателе внизу
-                сайдбара.
+              <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                После входа откроется дашборд. Каналы модератора — в переключателе внизу сайдбара.
               </p>
             </CardContent>
           </Card>
-        </section>
+        </div>
+
+        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border/50 pt-6 text-xs text-muted-foreground">
+          <span>Установка игры: Win+R → команда из раздела «Автоставка»</span>
+          <span className="flex items-center gap-1">
+            <Radio className="size-3" />
+            GSI Dota 2 · CS2
+          </span>
+        </footer>
       </div>
     </main>
   )

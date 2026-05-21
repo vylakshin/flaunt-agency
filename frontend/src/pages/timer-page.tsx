@@ -2,6 +2,7 @@ import { CheckCircle2, Clock3, MessageSquareText, Pencil, Plus, Search, Trash2, 
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 
 import { PageHeader } from "@/components/app/page-header"
+import { PageShell } from "@/components/app/page-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -189,7 +190,7 @@ export function TimerPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <PageHeader title="Таймеры" description="Автоматические сообщения для чата." />
         <Button type="button" onClick={openCreateDialog}>
@@ -230,7 +231,7 @@ export function TimerPage() {
         onUpdateMessage={updateMessage}
         updateForm={updateForm}
       />
-    </div>
+    </PageShell>
   )
 }
 

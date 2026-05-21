@@ -2,6 +2,7 @@ import { Loader2, Play, RotateCcw, Search, Square, Trash2, Trophy } from "lucide
 import { useEffect, useMemo, useState } from "react"
 
 import { PageHeader } from "@/components/app/page-header"
+import { PageShell } from "@/components/app/page-shell"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -209,10 +210,10 @@ export function GiveawaysPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <PageShell wide>
         <Skeleton className="h-16 w-72" />
         <Skeleton className="h-[520px] w-full" />
-      </div>
+      </PageShell>
     )
   }
 
@@ -235,7 +236,7 @@ export function GiveawaysPage() {
   const twitchChatUrl = chatEmbedMode === "embed" ? twitchEmbedChatUrl : twitchPopoutChatUrl
 
   return (
-    <div className="space-y-6">
+    <PageShell wide>
       <PageHeader title="Розыгрыши" description="Собирай участников по активности, слову или покупке награды за баллы." />
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
@@ -531,7 +532,7 @@ export function GiveawaysPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   )
 }
 

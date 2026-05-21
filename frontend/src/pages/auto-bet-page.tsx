@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 
 import { PageHeader } from "@/components/app/page-header"
+import { PageShell } from "@/components/app/page-shell"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -267,10 +268,10 @@ export function AutoBetPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <PageShell>
         <Skeleton className="h-16 w-72" />
         <Skeleton className="h-72 w-full" />
-      </div>
+      </PageShell>
     )
   }
 
@@ -283,7 +284,7 @@ export function AutoBetPage() {
   const cs2Gsi = data.gsi.cs2
 
   return (
-    <div className="space-y-8">
+    <PageShell>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <PageHeader
           title="Автоставка"
@@ -527,7 +528,7 @@ export function AutoBetPage() {
         title={manualTitle}
         windowSeconds={manualWindow}
       />
-    </div>
+    </PageShell>
   )
 }
 

@@ -1,65 +1,65 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Syne", "Plus Jakarta Sans", ui-sans-serif, sans-serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", "Outfit", ui-sans-serif, sans-serif;
 
-  --color-background: oklch(0.985 0.004 280);
-  --color-foreground: oklch(0.18 0.02 280);
-  --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.18 0.02 280);
-  --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.18 0.02 280);
-  --color-primary: oklch(0.62 0.2 25);
-  --color-primary-foreground: oklch(0.99 0 0);
-  --color-secondary: oklch(0.96 0.008 280);
-  --color-secondary-foreground: oklch(0.28 0.03 280);
-  --color-muted: oklch(0.96 0.006 280);
-  --color-muted-foreground: oklch(0.5 0.02 280);
-  --color-accent: oklch(0.94 0.02 280);
-  --color-accent-foreground: oklch(0.22 0.03 280);
-  --color-destructive: oklch(0.55 0.22 25);
-  --color-border: oklch(0.9 0.01 280);
-  --color-input: oklch(0.9 0.01 280);
-  --color-ring: oklch(0.62 0.2 25);
-  --color-brand-teal: oklch(0.72 0.12 180);
-  --color-brand-coral: oklch(0.68 0.19 25);
-  --radius: 0.875rem;
+  --color-background: #f8f8fc;
+  --color-foreground: #12121a;
+  --color-card: #ffffff;
+  --color-card-foreground: #12121a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #12121a;
+  --color-primary: #e11d8f;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f0f0f6;
+  --color-secondary-foreground: #2a2a38;
+  --color-muted: #ececf4;
+  --color-muted-foreground: #64647a;
+  --color-accent: #e8e8f2;
+  --color-accent-foreground: #1a1a26;
+  --color-destructive: #dc2626;
+  --color-border: #dcdce8;
+  --color-input: #dcdce8;
+  --color-ring: #e11d8f;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --radius: 1rem;
 }
 
 :root {
   color-scheme: light dark;
-  --mesh-coral: oklch(0.68 0.19 25 / 18%);
-  --mesh-violet: oklch(0.55 0.18 300 / 14%);
-  --mesh-teal: oklch(0.72 0.12 180 / 12%);
-  --glow-primary: oklch(0.62 0.2 25 / 35%);
-  --sidebar-glass: oklch(1 0 0 / 72%);
+  --flaunt-grid: rgba(18, 18, 26, 0.04);
+  --flaunt-glow-pink: rgba(225, 29, 143, 0.35);
+  --flaunt-glow-cyan: rgba(14, 165, 233, 0.28);
+  --flaunt-surface: rgba(255, 255, 255, 0.82);
+  --flaunt-sidebar: rgba(255, 255, 255, 0.9);
 }
 
 .dark {
-  --color-background: oklch(0.12 0.025 280);
-  --color-foreground: oklch(0.97 0.004 280);
-  --color-card: oklch(0.16 0.028 280);
-  --color-card-foreground: oklch(0.97 0.004 280);
-  --color-popover: oklch(0.17 0.03 280);
-  --color-popover-foreground: oklch(0.97 0.004 280);
-  --color-primary: oklch(0.72 0.19 25);
-  --color-primary-foreground: oklch(0.14 0.02 280);
-  --color-secondary: oklch(0.22 0.035 280);
-  --color-secondary-foreground: oklch(0.94 0.006 280);
-  --color-muted: oklch(0.22 0.03 280);
-  --color-muted-foreground: oklch(0.68 0.02 280);
-  --color-accent: oklch(0.24 0.04 280);
-  --color-accent-foreground: oklch(0.96 0.006 280);
-  --color-destructive: oklch(0.65 0.2 25);
-  --color-border: oklch(1 0 0 / 9%);
-  --color-input: oklch(1 0 0 / 12%);
-  --color-ring: oklch(0.72 0.19 25);
-  --mesh-coral: oklch(0.68 0.19 25 / 22%);
-  --mesh-violet: oklch(0.52 0.2 300 / 18%);
-  --mesh-teal: oklch(0.72 0.12 180 / 16%);
-  --glow-primary: oklch(0.72 0.19 25 / 28%);
-  --sidebar-glass: oklch(0.14 0.03 280 / 78%);
+  --color-background: #07070b;
+  --color-foreground: #f4f4f8;
+  --color-card: #101018;
+  --color-card-foreground: #f4f4f8;
+  --color-popover: #14141e;
+  --color-popover-foreground: #f4f4f8;
+  --color-primary: #f472b6;
+  --color-primary-foreground: #0a0a0f;
+  --color-secondary: #1a1a26;
+  --color-secondary-foreground: #e8e8f2;
+  --color-muted: #1a1a26;
+  --color-muted-foreground: #9494ad;
+  --color-accent: #222230;
+  --color-accent-foreground: #f4f4f8;
+  --color-destructive: #f87171;
+  --color-border: rgba(255, 255, 255, 0.09);
+  --color-input: rgba(255, 255, 255, 0.11);
+  --color-ring: #f472b6;
+  --flaunt-grid: rgba(255, 255, 255, 0.035);
+  --flaunt-glow-pink: rgba(244, 114, 182, 0.22);
+  --flaunt-glow-cyan: rgba(56, 189, 248, 0.18);
+  --flaunt-surface: rgba(16, 16, 24, 0.88);
+  --flaunt-sidebar: rgba(12, 12, 18, 0.94);
 }
 
 @layer base {
@@ -67,12 +67,25 @@
     @apply border-border;
   }
 
+  html {
+    @apply scroll-smooth;
+  }
+
   body {
-    @apply bg-background font-sans text-foreground antialiased;
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    background-image:
+      linear-gradient(var(--flaunt-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--flaunt-grid) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
 
   #root {
     @apply min-h-screen;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 35%, transparent);
+    color: var(--color-foreground);
   }
 }
 
@@ -81,70 +94,124 @@
     font-family: var(--font-display);
   }
 
-  .app-mesh-bg {
+  .app-canvas {
     position: relative;
     isolation: isolate;
-    background-color: var(--color-background);
+    min-height: 100vh;
   }
 
-  .app-mesh-bg::before {
+  .app-canvas::before {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
     background:
-      radial-gradient(ellipse 80% 50% at 10% -10%, var(--mesh-coral), transparent 55%),
-      radial-gradient(ellipse 60% 45% at 90% 0%, var(--mesh-violet), transparent 50%),
-      radial-gradient(ellipse 55% 40% at 50% 100%, var(--mesh-teal), transparent 45%),
-      linear-gradient(180deg, var(--color-background), var(--color-background));
+      radial-gradient(ellipse 70% 45% at 0% -5%, var(--flaunt-glow-pink), transparent 55%),
+      radial-gradient(ellipse 55% 40% at 100% 0%, var(--flaunt-glow-cyan), transparent 50%),
+      radial-gradient(ellipse 50% 35% at 50% 110%, color-mix(in srgb, var(--color-primary) 12%, transparent), transparent 45%);
   }
 
-  .surface-card {
-    @apply rounded-2xl border border-border/80 bg-card/90 text-card-foreground shadow-sm backdrop-blur-sm;
+  .surface-panel {
+    border-radius: calc(var(--radius) + 4px);
+    border: 1px solid color-mix(in srgb, var(--color-border) 90%, transparent);
+    background: var(--flaunt-surface);
+    backdrop-filter: blur(16px) saturate(1.15);
     box-shadow:
-      0 1px 0 oklch(1 0 0 / 4%) inset,
-      0 12px 40px oklch(0 0 0 / 12%);
+      0 0 0 1px color-mix(in srgb, #fff 6%, transparent) inset,
+      0 24px 64px rgba(0, 0, 0, 0.18);
   }
 
-  .dark .surface-card {
-    box-shadow:
-      0 1px 0 oklch(1 0 0 / 6%) inset,
-      0 16px 48px oklch(0 0 0 / 35%);
+  .surface-panel-sm {
+    border-radius: var(--radius);
+    border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+    background: color-mix(in srgb, var(--flaunt-surface) 92%, transparent);
+    backdrop-filter: blur(12px);
   }
 
-  .brand-gradient {
-    background: linear-gradient(135deg, var(--color-brand-coral), oklch(0.58 0.2 300) 52%, var(--color-brand-teal));
+  .brand-mark {
+    background: linear-gradient(135deg, #f472b6 0%, #a855f7 48%, #38bdf8 100%);
+    color: #fff;
+    box-shadow: 0 8px 32px var(--flaunt-glow-pink);
   }
 
-  .brand-gradient-text {
-    background: linear-gradient(135deg, var(--color-brand-coral), oklch(0.7 0.16 300) 48%, var(--color-brand-teal));
+  .brand-text {
+    background: linear-gradient(135deg, #f472b6, #c084fc 45%, #38bdf8);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
-  .btn-brand {
-    background: linear-gradient(135deg, oklch(0.68 0.19 25), oklch(0.58 0.2 300) 48%, oklch(0.62 0.14 180));
-    color: oklch(0.99 0 0);
-    box-shadow: 0 8px 28px var(--glow-primary);
+  .btn-flaunt {
+    background: linear-gradient(135deg, #ec4899, #a855f7 50%, #0ea5e9);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 10px 36px var(--flaunt-glow-pink);
+    transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   }
 
-  .btn-brand:hover {
-    filter: brightness(1.06);
-    box-shadow: 0 10px 36px var(--glow-primary);
+  .btn-flaunt:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+    box-shadow: 0 14px 44px var(--flaunt-glow-pink);
   }
 
-  .sidebar-glass {
-    background: var(--sidebar-glass);
-    backdrop-filter: blur(20px) saturate(1.2);
+  .sidebar-panel {
+    background: var(--flaunt-sidebar);
+    backdrop-filter: blur(24px) saturate(1.25);
+    border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
   }
 
-  .login-mesh {
+  .nav-pill {
+    @apply relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200;
+  }
+
+  .nav-pill-active {
+    @apply bg-primary/15 text-foreground;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  }
+
+  .nav-pill-active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    height: 1.5rem;
+    width: 3px;
+    translate: 0 -50%;
+    border-radius: 0 4px 4px 0;
+    background: var(--color-primary);
+  }
+
+  .nav-pill-idle {
+    @apply text-muted-foreground hover:bg-accent/90 hover:text-foreground;
+  }
+
+  .page-shell {
+    @apply mx-auto w-full max-w-7xl space-y-8 px-1 pb-12 pt-1;
+  }
+
+  .page-shell-wide {
+    @apply max-w-[90rem];
+  }
+
+  .login-stage {
+    min-height: 100vh;
     background:
-      radial-gradient(ellipse 90% 60% at 0% 0%, var(--mesh-coral), transparent 50%),
-      radial-gradient(ellipse 70% 50% at 100% 20%, var(--mesh-violet), transparent 45%),
-      radial-gradient(ellipse 60% 45% at 40% 100%, var(--mesh-teal), transparent 40%),
+      radial-gradient(ellipse 80% 55% at 15% 0%, var(--flaunt-glow-pink), transparent 50%),
+      radial-gradient(ellipse 60% 45% at 85% 10%, var(--flaunt-glow-cyan), transparent 45%),
       var(--color-background);
+  }
+
+  .metric-tile {
+    border-radius: var(--radius);
+    border: 1px solid color-mix(in srgb, var(--color-border) 85%, transparent);
+    background: color-mix(in srgb, var(--flaunt-surface) 92%, transparent);
+    backdrop-filter: blur(12px);
+    padding: 1rem;
+  }
+
+  .kbd-hint {
+    @apply rounded-md border border-border/80 bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground;
   }
 }

@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/app/page-header"
+import { PageShell } from "@/components/app/page-shell"
 import {
   dashboardSettingsFromPayload,
   GameSettingsCard,
@@ -78,10 +79,10 @@ export function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <PageShell>
         <Skeleton className="h-16 w-72" />
         <Skeleton className="h-96 w-full" />
-      </div>
+      </PageShell>
     )
   }
 
@@ -90,12 +91,12 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader title="Настройки" description={`Канал ${data.user.display_name}. Параметры сохраняются автоматически без перезагрузки.`} />
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <GameSettingsCard data={data} formState={formState} isSaving={settingsSaveState === "saving"} settingsSaveState={settingsSaveState} updateSettings={updateSettings} />
-    </div>
+    </PageShell>
   )
 }

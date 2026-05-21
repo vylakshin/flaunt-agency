@@ -3,6 +3,7 @@ import { useEffect, useState, type ChangeEvent, type ReactNode } from "react"
 import { Trash2, Upload, UserMinus } from "lucide-react"
 
 import { PageHeader } from "@/components/app/page-header"
+import { PageShell } from "@/components/app/page-shell"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -275,7 +276,7 @@ export function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <PageShell>
         <Skeleton className="h-16 w-72" />
         <div className="grid gap-4 md:grid-cols-3">
           <Skeleton className="h-28 w-full" />
@@ -283,7 +284,7 @@ export function AdminPage() {
           <Skeleton className="h-28 w-full" />
         </div>
         <Skeleton className="h-96 w-full" />
-      </div>
+      </PageShell>
     )
   }
 
@@ -314,7 +315,7 @@ export function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <PageHeader title="Админ-панель" description={`Служебные настройки. Обновлено ${data.settings_updated_at}.`} />
         <div className="flex flex-wrap gap-2">
@@ -678,7 +679,7 @@ export function AdminPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PageShell>
   )
 }
 

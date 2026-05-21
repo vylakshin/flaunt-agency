@@ -2,6 +2,7 @@ import { ChevronDown, CircleAlert, Loader2, Pencil, Plus, Trash2, X } from "luci
 import { useEffect, useMemo, useState, type Dispatch, type FormEvent, type SetStateAction } from "react"
 
 import { PageHeader } from "@/components/app/page-header"
+import { PageShell } from "@/components/app/page-shell"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -210,7 +211,7 @@ export function CommandsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader title="Команды" description="Стандартные команды сгруппированы по разделам, кастомные команды добавляются отдельно." />
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
@@ -339,7 +340,7 @@ export function CommandsPage() {
         setForm={setForm}
         updateName={updateName}
       />
-    </div>
+    </PageShell>
   )
 }
 

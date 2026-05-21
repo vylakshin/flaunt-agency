@@ -2,7 +2,8 @@
 import {
   BarChart3,
   Check,
-  ChevronsUpDown,
+  ChevronsLeft,
+  ChevronsRight,
   CircleHelp,
   Gift,
   LayoutDashboard,
@@ -10,6 +11,7 @@ import {
   LogOut,
   MessageSquareText,
   Moon,
+  PanelLeft,
   Settings,
   ShieldCheck,
   Sun,
@@ -37,19 +39,20 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import { requestJson } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import type { AppSession } from "@/types/app"
 
 const mainNavItems = [
-  { to: "/dashboard", label: "Дашборд", icon: LayoutDashboard, ownerOnly: false },
-  { to: "/quiz", label: "Викторина", icon: CircleHelp, ownerOnly: false },
-  { to: "/commands", label: "Команды", icon: MessageSquareText, ownerOnly: false },
-  { to: "/giveaways", label: "Розыгрыши", icon: Gift, ownerOnly: false },
-  { to: "/autobet", label: "Автоставка", icon: Trophy, ownerOnly: false },
-  { to: "/timers", label: "Таймеры", icon: Timer, ownerOnly: false },
+  { to: "/dashboard", label: "Дашборд", icon: LayoutDashboard },
+  { to: "/quiz", label: "Викторина", icon: CircleHelp },
+  { to: "/commands", label: "Команды", icon: MessageSquareText },
+  { to: "/giveaways", label: "Розыгрыши", icon: Gift },
+  { to: "/autobet", label: "Автоставка", icon: Trophy },
+  { to: "/timers", label: "Таймеры", icon: Timer },
 ]
 
 const adminNavItems = [
-  { to: "/admin", label: "Админ-панель", icon: ShieldCheck },
+  { to: "/admin", label: "Админ", icon: ShieldCheck },
   { to: "/stats", label: "Статистика", icon: BarChart3 },
 ]
 
@@ -57,17 +60,13 @@ export function AppFrame() {
   const { data, isLoading, setData } = useJsonQuery<AppSession>("/api/app/session")
   const location = useLocation()
   const [switchingChannelId, setSwitchingChannelId] = useState<number | null>(null)
-  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
-  const isGiveawaysPage = location.pathname.startsWith("/giveaways")
-  const visibleMainItems = mainNavItems.filter((item) => !item.ownerOnly || data?.active_channel.role === "owner")
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const isGiveaways = location.pathname.startsWith("/giveaways")
 
   useEffect(() => {
-    const updateIsMobile = () => setIsMobile(window.innerWidth < 1024)
-    updateIsMobile()
-    window.addEventListener("resize", updateIsMobile)
-    return () => window.removeEventListener("resize", updateIsMobile)
-  }, [])
+    setMobileOpen(false)
+  }, [location.pathname])
 
   async function switchChannel(ownerId: number) {
     if (!data || ownerId === data.active_channel.id) return
@@ -87,40 +86,38 @@ export function AppFrame() {
   return (
     <ThemeProvider>
       <SidebarProvider>
-        <Sidebar className={isSidebarCollapsed ? "lg:w-20" : "lg:w-72"}>
+        <Sidebar className={cn(collapsed ? "lg:w-[5.25rem]" : "lg:w-[17.5rem]", !mobileOpen && "max-lg:-translate-x-full max-lg:fixed")}>
           <div className="flex h-full flex-col">
             <SidebarHeader>
-              <div className={isSidebarCollapsed ? "flex justify-center" : ""}>
-                <BrandLogo compact={isSidebarCollapsed} />
+              <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-2")}>
+                <BrandLogo compact={collapsed} />
+                <button
+                  type="button"
+                  className="hidden rounded-lg border border-border/60 p-2 text-muted-foreground transition hover:bg-accent lg:inline-flex"
+                  onClick={() => setCollapsed((v) => !v)}
+                  aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
+                >
+                  {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
+                </button>
               </div>
-              <button
-                type="button"
-                className="mt-3 hidden w-full items-center justify-center gap-2 rounded-xl border border-border/60 px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/30 hover:bg-accent/80 hover:text-foreground lg:flex"
-                onClick={() => setSidebarCollapsed((value) => !value)}
-                aria-label={isSidebarCollapsed ? "Развернуть сайдбар" : "Свернуть сайдбар"}
-                title={isSidebarCollapsed ? "Развернуть" : "Свернуть"}
-              >
-                <ChevronsUpDown className={isSidebarCollapsed ? "size-4 rotate-90" : "size-4 -rotate-90"} />
-                <span className={isSidebarCollapsed ? "hidden" : ""}>{isSidebarCollapsed ? "Развернуть" : "Свернуть"}</span>
-              </button>
             </SidebarHeader>
 
-            <SidebarContent className={isSidebarCollapsed ? "overflow-visible" : undefined}>
+            <SidebarContent className={collapsed ? "overflow-visible px-1" : undefined}>
               <SidebarGroup>
-                <SidebarGroupLabel className={isSidebarCollapsed ? "sr-only" : ""}>Навигация</SidebarGroupLabel>
+                {!collapsed ? <SidebarGroupLabel>Меню</SidebarGroupLabel> : null}
                 <SidebarMenu>
-                  {visibleMainItems.map((item) => (
-                    <NavMenuLink key={item.to} collapsed={isSidebarCollapsed} item={item} />
+                  {mainNavItems.map((item) => (
+                    <NavItem key={item.to} collapsed={collapsed} item={item} />
                   ))}
                 </SidebarMenu>
               </SidebarGroup>
 
               {data?.is_admin ? (
                 <SidebarGroup>
-                  <SidebarGroupLabel className={isSidebarCollapsed ? "sr-only" : ""}>Админ-панель</SidebarGroupLabel>
+                  {!collapsed ? <SidebarGroupLabel>Админ</SidebarGroupLabel> : null}
                   <SidebarMenu>
                     {adminNavItems.map((item) => (
-                      <NavMenuLink key={item.to} collapsed={isSidebarCollapsed} item={item} />
+                      <NavItem key={item.to} collapsed={collapsed} item={item} />
                     ))}
                   </SidebarMenu>
                 </SidebarGroup>
@@ -129,46 +126,96 @@ export function AppFrame() {
 
             <SidebarFooter>
               {isLoading || !data ? (
-                <Skeleton className="h-16 w-full rounded-xl" />
+                <Skeleton className="h-14 w-full rounded-xl" />
               ) : (
-                <ChannelMenu
-                  collapsed={isSidebarCollapsed}
+                <ChannelSwitcher
+                  collapsed={collapsed}
                   data={data}
-                  isMobile={isMobile}
                   switchingChannelId={switchingChannelId}
-                  onSwitch={(ownerId) => void switchChannel(ownerId)}
+                  onSwitch={(id) => void switchChannel(id)}
                 />
               )}
             </SidebarFooter>
           </div>
         </Sidebar>
 
-        <main className={`app-mesh-bg ${isSidebarCollapsed ? "flex-1 lg:ml-20" : "flex-1 lg:ml-72"}`}>
-          <div
-            className={
-              isGiveawaysPage
-                ? "mx-auto flex min-h-screen w-full max-w-none flex-col gap-8 p-4 lg:p-6"
-                : "mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 p-4 lg:p-8"
-            }
-          >
-            <Outlet key={data?.active_channel.id ?? "loading"} />
-          </div>
-        </main>
+        {mobileOpen ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            aria-label="Закрыть меню"
+            onClick={() => setMobileOpen(false)}
+          />
+        ) : null}
+
+        <div className={cn("flex min-h-screen flex-1 flex-col", collapsed ? "lg:pl-[5.25rem]" : "lg:pl-[17.5rem]")}>
+          <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border/50 bg-background/75 px-4 py-3 backdrop-blur-xl lg:px-8">
+            <button
+              type="button"
+              className="rounded-xl border border-border/70 p-2.5 text-muted-foreground lg:hidden"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Открыть меню"
+            >
+              <PanelLeft className="size-5" />
+            </button>
+            <div className="hidden text-sm text-muted-foreground lg:block">
+              {data?.active_channel.display_name || data?.active_channel.login || "Канал"}
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              {data?.is_admin ? (
+                <Link
+                  to="/admin"
+                  className="hidden rounded-xl border border-border/70 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:text-foreground sm:inline-flex"
+                >
+                  Админ
+                </Link>
+              ) : null}
+            </div>
+          </header>
+
+          <main className={cn("flex-1 px-4 py-6 lg:px-8 lg:py-8", isGiveaways && "px-3 lg:px-5")}>
+            <div className={cn(isGiveaways ? "mx-auto w-full max-w-[90rem]" : "mx-auto w-full max-w-7xl")}>
+              <Outlet key={data?.active_channel.id ?? "loading"} />
+            </div>
+          </main>
+        </div>
       </SidebarProvider>
     </ThemeProvider>
   )
 }
 
-function ChannelMenu({
+function NavItem({
+  collapsed,
+  item,
+}: {
+  collapsed: boolean
+  item: { to: string; label: string; icon: ComponentType<{ className?: string }> }
+}) {
+  const Icon = item.icon
+  return (
+    <SidebarMenuItem>
+      <NavLink
+        to={item.to}
+        title={collapsed ? item.label : undefined}
+        className={({ isActive }) =>
+          cn(sidebarMenuButtonVariants({ isActive }), collapsed && "justify-center px-0 pl-0", !collapsed && "pl-4")
+        }
+      >
+        <Icon className="size-4 shrink-0" />
+        {!collapsed ? <span>{item.label}</span> : null}
+      </NavLink>
+    </SidebarMenuItem>
+  )
+}
+
+function ChannelSwitcher({
   collapsed,
   data,
-  isMobile,
   onSwitch,
   switchingChannelId,
 }: {
   collapsed: boolean
   data: AppSession
-  isMobile: boolean
   onSwitch: (ownerId: number) => void
   switchingChannelId: number | null
 }) {
@@ -179,99 +226,72 @@ function ChannelMenu({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
-          className={
-            collapsed
-              ? "group relative flex w-full items-center justify-center rounded-xl border border-border/60 bg-card/60 p-2 text-left shadow-sm backdrop-blur-sm transition-colors hover:border-primary/30 hover:bg-accent/80"
-              : "flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-3 py-2.5 text-left shadow-sm backdrop-blur-sm transition-colors hover:border-primary/30 hover:bg-accent/80"
-          }
-          title={collapsed ? `${active.display_name || active.login} · управление` : undefined}
           type="button"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <ChannelAvatar label={active.display_name || active.login} src={active.profile_image_url} />
-            <div className={collapsed ? "hidden" : "min-w-0"}>
-              <div className="truncate font-medium">{active.display_name || active.login}</div>
-              <div className="truncate text-sm text-muted-foreground">Управление каналом</div>
-            </div>
-          </div>
-          {collapsed ? (
-            <CollapsedTooltip label={`${active.display_name || active.login} · управление`} />
-          ) : switchingChannelId ? (
-            <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-          ) : (
-            <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
+          className={cn(
+            "flex w-full items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-2.5 text-left transition hover:border-primary/35 hover:bg-accent/60",
+            collapsed && "justify-center p-2"
           )}
+        >
+          <ChannelAvatar label={active.display_name || active.login} src={active.profile_image_url} />
+          {!collapsed ? (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{active.display_name || active.login}</span>
+                <span className="block truncate text-xs text-muted-foreground">Сменить канал</span>
+              </span>
+              {switchingChannelId ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : (
+                <ChevronsRight className="size-4 text-muted-foreground" />
+              )}
+            </>
+          ) : null}
         </button>
       </DropdownMenu.Trigger>
 
       <DropdownMenu.Portal>
         <DropdownMenu.Content
-          side={isMobile ? "bottom" : "right"}
-          align="end"
-          sideOffset={isMobile ? 8 : 12}
-          collisionPadding={12}
-          className="z-50 w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-border/80 bg-popover/95 p-1.5 text-popover-foreground shadow-2xl backdrop-blur-xl"
+          side="top"
+          align={collapsed ? "center" : "start"}
+          sideOffset={8}
+          className="z-50 w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-border/80 bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl"
         >
-          <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Доступные каналы
-          </div>
-
+          <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Каналы</p>
           {data.channels.map((channel) => (
             <DropdownMenu.Item asChild key={channel.id}>
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm outline-none hover:bg-accent disabled:cursor-default disabled:opacity-70"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm outline-none hover:bg-accent disabled:opacity-60"
                 onClick={() => onSwitch(channel.id)}
                 disabled={switchingChannelId !== null}
               >
-                <ChannelAvatar label={channel.display_name || channel.login} src={channel.profile_image_url} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span className="truncate font-medium">{channel.display_name || channel.login}</span>
-                    {channel.role === "owner" ? <Badge variant="brand" className="px-1.5 py-0 text-[10px] uppercase">Я</Badge> : null}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">twitch.tv/{channel.login}</span>
-                </span>
-                {switchingChannelId === channel.id ? (
-                  <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
-                ) : channel.is_active ? (
-                  <Check className="size-4 shrink-0 text-primary" />
-                ) : null}
+                <ChannelAvatar label={channel.display_name || channel.login} src={channel.profile_image_url} small />
+                <span className="min-w-0 flex-1 truncate font-medium">{channel.display_name || channel.login}</span>
+                {channel.role === "owner" ? <Badge variant="brand">Я</Badge> : null}
+                {channel.is_active ? <Check className="size-4 text-primary" /> : null}
               </button>
             </DropdownMenu.Item>
           ))}
-
           <div className="my-1 h-px bg-border/60" />
-
+          <DropdownMenu.Item asChild>
+            <button type="button" onClick={toggleTheme} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent">
+              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+              {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
+            </button>
+          </DropdownMenu.Item>
           {data.is_admin ? (
             <DropdownMenu.Item asChild>
-              <Link to="/admin" className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none hover:bg-accent">
+              <Link to="/admin" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent">
                 <Settings className="size-4" />
-                <span>Админ-панель</span>
+                Настройки
               </Link>
             </DropdownMenu.Item>
           ) : null}
-
-          <DropdownMenu.Item asChild>
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none hover:bg-accent"
-            >
-              {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              <span>{theme === "dark" ? "Светлая тема" : "Тёмная тема"}</span>
-            </button>
-          </DropdownMenu.Item>
-
           <div className="my-1 h-px bg-border/60" />
-
-          <form action="/logout" method="post" className="w-full">
-            <button
-              type="submit"
-              className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none hover:bg-accent"
-            >
+          <form action="/logout" method="post">
+            <button type="submit" className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent">
               <LogOut className="size-4" />
-              <span>Выйти</span>
+              Выйти
             </button>
           </form>
         </DropdownMenu.Content>
@@ -280,54 +300,14 @@ function ChannelMenu({
   )
 }
 
-function NavMenuLink({
-  collapsed,
-  item,
-}: {
-  collapsed: boolean
-  item: {
-    to: string
-    label: string
-    icon: ComponentType<{ className?: string }>
-  }
-}) {
-  const Icon = item.icon
-
-  return (
-    <SidebarMenuItem>
-      <NavLink
-        to={item.to}
-        title={collapsed ? item.label : undefined}
-        aria-label={item.label}
-        className={({ isActive }) =>
-          [sidebarMenuButtonVariants({ isActive }), collapsed ? "group relative justify-center px-0" : "pl-4"].filter(Boolean).join(" ")
-        }
-      >
-        <Icon className="size-4 shrink-0" />
-        <span className={collapsed ? "sr-only" : ""}>{item.label}</span>
-        {collapsed ? <CollapsedTooltip label={item.label} /> : null}
-      </NavLink>
-    </SidebarMenuItem>
-  )
-}
-
-function CollapsedTooltip({ label }: { label: string }) {
-  return (
-    <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg border border-border/80 bg-popover px-2.5 py-1.5 text-xs font-medium text-popover-foreground shadow-xl group-hover:block">
-      {label}
-    </span>
-  )
-}
-
-function ChannelAvatar({ label, src }: { label: string; src?: string }) {
+function ChannelAvatar({ label, src, small }: { label: string; src?: string; small?: boolean }) {
   const initial = (label || "U").slice(0, 1).toUpperCase()
-
+  const size = small ? "size-8" : "size-10"
   if (src) {
-    return <img alt="" className="size-10 shrink-0 rounded-full object-cover ring-2 ring-border/60" src={src} />
+    return <img alt="" className={cn(size, "shrink-0 rounded-full object-cover ring-2 ring-border/50")} src={src} />
   }
-
   return (
-    <div className="brand-gradient flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ring-2 ring-white/10">
+    <div className={cn("brand-mark flex shrink-0 items-center justify-center rounded-full text-sm font-bold", size)}>
       {initial}
     </div>
   )
