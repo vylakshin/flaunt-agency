@@ -25,7 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
+import { showNotice } from "@/lib/notify"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import { fetchJson, requestJson } from "@/lib/api"
 import type { AutoBetPayload } from "@/types/app"
@@ -77,7 +77,6 @@ export function AutoBetPage() {
   const [manualFirstOutcome, setManualFirstOutcome] = useState("Победа")
   const [manualSecondOutcome, setManualSecondOutcome] = useState("Поражение")
   const [manualWindow, setManualWindow] = useState("120")
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [nowMs, setNowMs] = useState(() => Date.now())
   const [predictionClock, setPredictionClock] = useState<{ id: string; syncedAtMs: number; secondsRemaining: number }>({
@@ -152,11 +151,10 @@ export function AutoBetPage() {
   async function runAction(action: string, run: () => Promise<void>) {
     busyActionRef.current = action
     setBusyAction(action)
-    setNotice(null)
     try {
       await run()
     } catch (error) {
-      setNotice({ type: "error", title: "Действие не выполнено", text: (error as Error).message })
+      showNotice("error", "Действие не выполнено", (error as Error).message)
     } finally {
       busyActionRef.current = null
       setBusyAction(null)
@@ -187,7 +185,7 @@ export function AutoBetPage() {
         }),
       })
       setData(payload)
-      setNotice({ type: "success", title: "Автоставка сохранена", text: "Настройки обновлены." })
+      showNotice("success", "Автоставка сохранена", "Настройки обновлены.")
     })
   }
 
@@ -200,11 +198,11 @@ export function AutoBetPage() {
       })
       setData(payload)
       await refreshAutoBetState()
-      setNotice({
-        type: result === "cancel" ? "warning" : "success",
-        title: result === "win" ? "Закрыто первым ответом" : result === "loss" ? "Закрыто вторым ответом" : "Ставка отменена",
-        text: "Результат ставки обновлён.",
-      })
+      showNotice(
+        result === "cancel" ? "warning" : "success",
+        result === "win" ? "Закрыто первым ответом" : result === "loss" ? "Закрыто вторым ответом" : "Ставка отменена",
+        "Результат ставки обновлён."
+      )
     })
   }
 
@@ -225,16 +223,16 @@ export function AutoBetPage() {
       setData(payload)
       await refreshAutoBetState()
       setManualOpen(false)
-      setNotice({ type: "success", title: "Ставка открыта", text: "Новая ставка создана." })
+      showNotice("success", "Ставка открыта", "Новая ставка создана.")
     })
   }
 
   async function copyInstallCommand(value: string) {
     try {
       await navigator.clipboard.writeText(value)
-      setNotice({ type: "success", title: "Команда скопирована", text: "Нажми Win+R, вставь команду и нажми Enter." })
+      showNotice("success", "Команда скопирована", "Нажми Win+R, вставь команду и нажми Enter.")
     } catch {
-      setNotice({ type: "error", title: "Не удалось скопировать", text: "Скопируй команду вручную из поля." })
+      showNotice("error", "Не удалось скопировать", "Скопируй команду вручную из поля.")
     }
   }
 
@@ -297,8 +295,6 @@ export function AutoBetPage() {
           </Button>
         </div>
       </div>
-
-      <Toast notice={notice} onClose={() => setNotice(null)} />
 
       {lastError ? (
         <Alert variant="warning">

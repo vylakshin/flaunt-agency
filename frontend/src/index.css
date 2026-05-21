@@ -1,8 +1,11 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", "Outfit", ui-sans-serif, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   --color-background: #fafafa;
   --color-foreground: #111118;
@@ -29,6 +32,13 @@
 
 :root {
   color-scheme: light dark;
+  --sidebar: #f8f8fa;
+  --sidebar-foreground: #18181f;
+  --sidebar-primary: #db2777;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f0f5;
+  --sidebar-accent-foreground: #18181f;
+  --sidebar-border: #e4e4ec;
   --flaunt-accent: #db2777;
   --flaunt-accent-soft: rgba(219, 39, 119, 0.12);
   --flaunt-cyan: #0ea5e9;
@@ -44,6 +54,13 @@
 }
 
 .dark {
+  --sidebar: #07070c;
+  --sidebar-foreground: #e8e8ef;
+  --sidebar-primary: #f472b6;
+  --sidebar-primary-foreground: #0a0a0f;
+  --sidebar-accent: #14141c;
+  --sidebar-accent-foreground: #f2f2f7;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
   --color-background: #09090f;
   --color-foreground: #f2f2f7;
   --color-card: #12121a;
@@ -155,21 +172,28 @@
   }
 
   .sidebar-panel {
-    background: var(--flaunt-surface-1);
-    border-color: var(--flaunt-border);
+    background: var(--sidebar);
+    border-color: var(--sidebar-border);
+    color: var(--sidebar-foreground);
   }
 
   .nav-pill {
-    @apply relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150;
+    @apply relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150;
   }
 
   .nav-pill-active {
-    @apply bg-primary/12 text-foreground;
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 28%, transparent);
+    background: color-mix(in srgb, var(--sidebar-primary) 18%, var(--sidebar-accent));
+    color: var(--sidebar-foreground);
+    box-shadow: inset 3px 0 0 0 var(--sidebar-primary);
   }
 
   .nav-pill-idle {
-    @apply text-muted-foreground hover:bg-accent hover:text-foreground;
+    color: color-mix(in srgb, var(--sidebar-foreground) 72%, transparent);
+  }
+
+  .nav-pill-idle:hover {
+    background: var(--sidebar-accent);
+    color: var(--sidebar-accent-foreground);
   }
 
   .page-shell {

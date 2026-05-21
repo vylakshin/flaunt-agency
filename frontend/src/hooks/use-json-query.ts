@@ -16,13 +16,22 @@ export function useJsonQuery<T>(url: string) {
   })
 
   const refetch = useCallback(async () => {
-    setState((current) => ({ ...current, isLoading: true, error: null }))
+    setState((current) => ({
+      ...current,
+      // Keep the UI stable during background refresh when we already have data.
+      isLoading: !current.data,
+      error: null,
+    }))
 
     try {
       const data = await fetchJson<T>(url)
       setState({ data, isLoading: false, error: null })
     } catch (error) {
-      setState({ data: null, isLoading: false, error: (error as Error).message })
+      setState((current) => ({
+        data: current.data,
+        isLoading: false,
+        error: (error as Error).message,
+      }))
     }
   }, [url])
 

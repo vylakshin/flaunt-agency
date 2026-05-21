@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
+import { showNotice } from "@/lib/notify"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import { requestJson } from "@/lib/api"
 import type { CommandItem, CommandsMutationResult, CommandsPayload } from "@/types/app"
@@ -38,7 +38,6 @@ const commandRoles = [
 
 export function CommandsPage() {
   const { data, isLoading, error, refetch, setData } = useJsonQuery<CommandsPayload>("/api/app/commands")
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const [busyCommand, setBusyCommand] = useState<string | null>(null)
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [editingCommand, setEditingCommand] = useState<CommandItem | null>(null)
@@ -98,7 +97,6 @@ export function CommandsPage() {
 
   async function toggleCommand(command: CommandItem, enabled: boolean) {
     setBusyCommand(`toggle-${command.name}`)
-    setNotice(null)
     try {
       const result = await requestJson<CommandsMutationResult>("/api/app/commands/toggle", {
         method: "POST",
@@ -107,7 +105,7 @@ export function CommandsPage() {
       })
       await updateCommandList(result)
     } catch (error) {
-      setNotice({ type: "error", title: "Команда не обновлена", text: (error as Error).message })
+      showNotice("error", "Команда не обновлена", (error as Error).message)
     } finally {
       setBusyCommand(null)
     }
@@ -115,7 +113,6 @@ export function CommandsPage() {
 
   async function toggleCommandGroup(enabled: boolean) {
     setBusyCommand("toggle-group")
-    setNotice(null)
     try {
       const result = await requestJson<CommandsMutationResult>("/api/app/commands/toggle-all", {
         method: "POST",
@@ -123,13 +120,13 @@ export function CommandsPage() {
         body: JSON.stringify({ enabled, group: "builtin" }),
       })
       await updateCommandList(result)
-      setNotice({
-        type: "success",
-        title: enabled ? "Команды викторины включены" : "Команды викторины отключены",
-        text: enabled ? "Команды викторины снова отвечают в чате." : "Команды викторины отключены группой.",
-      })
+      showNotice(
+        "success",
+        enabled ? "Команды викторины включены" : "Команды викторины отключены",
+        enabled ? "Команды викторины снова отвечают в чате." : "Команды викторины отключены группой."
+      )
     } catch (error) {
-      setNotice({ type: "error", title: "Команды не обновлены", text: (error as Error).message })
+      showNotice("error", "Команды не обновлены", (error as Error).message)
     } finally {
       setBusyCommand(null)
     }
@@ -138,7 +135,6 @@ export function CommandsPage() {
   async function deleteCommand(command: CommandItem) {
     if (!window.confirm(`Удалить команду ${command.name}?`)) return
     setBusyCommand(`delete-${command.name}`)
-    setNotice(null)
     try {
       const result = await requestJson<CommandsMutationResult>("/api/app/commands/delete", {
         method: "POST",
@@ -146,9 +142,9 @@ export function CommandsPage() {
         body: JSON.stringify({ name: command.name }),
       })
       await updateCommandList(result)
-      setNotice({ type: "warning", title: "Команда удалена", text: `${command.name} больше не отвечает в чате.` })
+      showNotice("warning", "Команда удалена", `${command.name} больше не отвечает в чате.`)
     } catch (error) {
-      setNotice({ type: "error", title: "Команда не удалена", text: (error as Error).message })
+      showNotice("error", "Команда не удалена", (error as Error).message)
     } finally {
       setBusyCommand(null)
     }
@@ -157,7 +153,6 @@ export function CommandsPage() {
   async function createCommand(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusyCommand("create")
-    setNotice(null)
     try {
       const result = await requestJson<CommandsMutationResult>(editingCommand ? "/api/app/commands/update" : "/api/app/commands", {
         method: "POST",
@@ -176,9 +171,13 @@ export function CommandsPage() {
       setCreateOpen(false)
       setEditingCommand(null)
       resetForm()
-      setNotice(editingCommand ? { type: "success", title: "Команда обновлена", text: `${form.name} сохранена.` } : { type: "success", title: "Команда добавлена", text: `${form.name} готова отвечать в чате.` })
+      showNotice(
+        "success",
+        editingCommand ? "Команда обновлена" : "Команда добавлена",
+        editingCommand ? `${form.name} сохранена.` : `${form.name} готова отвечать в чате.`
+      )
     } catch (error) {
-      setNotice({ type: "error", title: "Команда не создана", text: (error as Error).message })
+      showNotice("error", "Команда не создана", (error as Error).message)
     } finally {
       setBusyCommand(null)
     }
@@ -213,8 +212,6 @@ export function CommandsPage() {
   return (
     <PageShell>
       <PageHeader title="Команды" description="Стандартные команды сгруппированы по разделам, кастомные команды добавляются отдельно." />
-
-      <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="inline-grid rounded-lg border bg-muted/30 p-1 sm:grid-cols-2">

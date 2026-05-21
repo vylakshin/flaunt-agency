@@ -9,7 +9,7 @@ import {
   type SettingsSaveState,
 } from "@/components/app/game-settings-card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
+import { showNotice } from "@/lib/notify"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import { requestJson } from "@/lib/api"
 import type { DashboardPayload, MutationResult } from "@/types/app"
@@ -19,7 +19,6 @@ export function SettingsPage() {
   const { data, isLoading, error } = useJsonQuery<DashboardPayload>("/api/app/dashboard")
   const [formState, setFormState] = useState<DashboardSettingsForm | null>(null)
   const [settingsSaveState, setSettingsSaveState] = useState<SettingsSaveState>("idle")
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const lastSavedSettingsRef = useRef("")
 
   useEffect(() => {
@@ -70,10 +69,9 @@ export function SettingsPage() {
       })
       lastSavedSettingsRef.current = serialized
       setSettingsSaveState("saved")
-      setNotice(null)
     } catch (error) {
       setSettingsSaveState("error")
-      setNotice({ type: "error", title: "Настройки не сохранены", text: (error as Error).message })
+      showNotice("error", "Настройки не сохранены", (error as Error).message)
     }
   }
 
@@ -93,8 +91,6 @@ export function SettingsPage() {
   return (
     <PageShell>
       <PageHeader title="Настройки" description={`Канал ${data.user.display_name}. Параметры сохраняются автоматически без перезагрузки.`} />
-
-      <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <GameSettingsCard data={data} formState={formState} isSaving={settingsSaveState === "saving"} settingsSaveState={settingsSaveState} updateSettings={updateSettings} />
     </PageShell>

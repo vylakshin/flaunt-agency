@@ -38,7 +38,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
+import { showNotice } from "@/lib/notify"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import { requestForm, requestJson } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -108,7 +108,6 @@ function quizStatusLabel(quiz: DashboardPayload["quiz"]) {
 
 export function QuizPage() {
   const { data, isLoading, error, refetch } = useJsonQuery<DashboardPayload>("/api/app/dashboard")
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [seasonTitle, setSeasonTitle] = useState("")
   const [seasonEndsAt, setSeasonEndsAt] = useState("")
@@ -125,11 +124,13 @@ export function QuizPage() {
   }, [data])
 
   useEffect(() => {
+    if (!data) return
     const timer = window.setInterval(() => {
+      if (actionBusy) return
       void refetch()
-    }, 2000)
+    }, 3000)
     return () => window.clearInterval(timer)
-  }, [refetch])
+  }, [refetch, actionBusy, Boolean(data)])
 
   const activeConfigLabel = useMemo(() => {
     if (!data) return "Источник не выбран"
@@ -139,20 +140,20 @@ export function QuizPage() {
   const customConfigCount = data ? data.configs.filter((config) => !config.is_standard).length : 0
   const configProgress = data ? (customConfigCount / data.limits.custom_configs_max) * 100 : 0
 
-  if (data && !formState) {
+  useEffect(() => {
+    if (!data || formState) return
     const nextSettings = dashboardSettingsFromPayload(data)
     setFormState(nextSettings)
     setLastSavedSettings(serializeDashboardSettings(nextSettings))
     setSettingsSaveState("idle")
-  }
+  }, [data, formState])
 
   async function withAction(action: string, run: () => Promise<void>) {
     setActionBusy(action)
-    setNotice(null)
     try {
       await run()
     } catch (error) {
-      setNotice({ type: "error", title: "Действие не выполнено", text: (error as Error).message })
+      showNotice("error", "Действие не выполнено", (error as Error).message)
     } finally {
       setActionBusy(null)
     }
@@ -189,10 +190,9 @@ export function QuizPage() {
       })
       setLastSavedSettings(serialized)
       setSettingsSaveState("saved")
-      setNotice(null)
     } catch (error) {
       setSettingsSaveState("error")
-      setNotice({ type: "error", title: "Настройки не сохранены", text: (error as Error).message })
+      showNotice("error", "Настройки не сохранены", (error as Error).message)
     }
   }
 
@@ -204,7 +204,7 @@ export function QuizPage() {
         body: JSON.stringify({ selected_source: selectedSource }),
       })
       await refetch()
-      setNotice({ type: "success", title: "База вопросов переключена", text: "Новые раунды будут брать вопросы из выбранного источника." })
+      showNotice("success", "База вопросов переключена", "Новые раунды будут брать вопросы из выбранного источника.")
     })
   }
 
@@ -217,14 +217,14 @@ export function QuizPage() {
         body: JSON.stringify({ config_id: configId }),
       })
       await refetch()
-      setNotice({ type: "success", title: "Конфиг удалён", text: "Если удалённый конфиг был активным, игра переключится на доступный fallback." })
+      showNotice("success", "Конфиг удалён", "Если удалённый конфиг был активным, игра переключится на доступный fallback.")
     })
   }
 
   async function uploadConfig(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!uploadFile) {
-      setNotice({ type: "error", title: "Файл не выбран", text: "Выбери JSON-файл с вопросами." })
+      showNotice("error", "Файл не выбран", "Выбери JSON-файл с вопросами.")
       return
     }
 
@@ -238,14 +238,14 @@ export function QuizPage() {
       setUploadInputKey((current) => current + 1)
       setUploadModalOpen(false)
       await refetch()
-      setNotice({ type: "success", title: "Конфиг загружен", text: "Новый JSON сохранён и сразу выбран активным." })
+      showNotice("success", "Конфиг загружен", "Новый JSON сохранён и сразу выбран активным.")
     })
   }
 
   async function startSeason(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!seasonEndsAt) {
-      setNotice({ type: "error", title: "Укажи дату окончания", text: "Без времени окончания сезон не запустится." })
+      showNotice("error", "Укажи дату окончания", "Без времени окончания сезон не запустится.")
       return
     }
 
@@ -260,7 +260,7 @@ export function QuizPage() {
       })
       setSeasonTitle("")
       await refetch()
-      setNotice({ type: "success", title: "Сезон запущен", text: "Теперь очки недели копятся в отдельном топе." })
+      showNotice("success", "Сезон запущен", "Теперь очки недели копятся в отдельном топе.")
     })
   }
 
@@ -268,7 +268,7 @@ export function QuizPage() {
     await withAction("quiz-start", async () => {
       const result = await requestJson<MutationResult>("/api/app/quiz/start", { method: "POST" })
       await refetch()
-      setNotice({ type: "success", title: "Раунд запущен", text: result.message ?? "Новый раунд начался." })
+      showNotice("success", "Раунд запущен", result.message ?? "Новый раунд начался.")
     })
   }
 
@@ -277,7 +277,7 @@ export function QuizPage() {
     await withAction("quiz-stop", async () => {
       const result = await requestJson<MutationResult>("/api/app/quiz/stop", { method: "POST" })
       await refetch()
-      setNotice({ type: "success", title: "Викторина остановлена", text: result.message ?? "Игра остановлена." })
+      showNotice("success", "Викторина остановлена", result.message ?? "Игра остановлена.")
     })
   }
 
@@ -290,7 +290,7 @@ export function QuizPage() {
         body: JSON.stringify({ season_id: seasonId ?? null }),
       })
       await refetch()
-      setNotice({ type: "success", title: "Сезон завершён", text: "Финальный топ сохранён в истории." })
+      showNotice("success", "Сезон завершён", "Финальный топ сохранён в истории.")
     })
   }
 
@@ -308,13 +308,11 @@ export function QuizPage() {
     )
   }
 
-  if (isLoading || !data || !formState) return <DashboardSkeleton />
+  if (!data || !formState) return <DashboardSkeleton />
 
   return (
     <PageShell wide>
       <PageHeader title="Викторина" description="Конфиги вопросов и overlay для игры." />
-
-      <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatusCard icon={Radio} label="Чат" value={data.status.chat_connected ? "Подключён" : "Не подключён"} tone={data.status.chat_connected ? "success" : "destructive"} />

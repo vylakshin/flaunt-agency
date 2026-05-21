@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
+import { showNotice } from "@/lib/notify"
 import { fetchJson, requestJson } from "@/lib/api"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import type { GiveawayState, GiveawaysPayload } from "@/types/app"
@@ -26,7 +26,6 @@ type GiveawayForm = {
 
 export function GiveawaysPage() {
   const { data, isLoading, error, setData } = useJsonQuery<GiveawaysPayload>("/api/app/giveaways")
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [chatEmbedMode, setChatEmbedMode] = useState<"embed" | "popout">("embed")
@@ -104,11 +103,10 @@ export function GiveawaysPage() {
 
   async function runAction(action: string, run: () => Promise<void>) {
     setBusyAction(action)
-    setNotice(null)
     try {
       await run()
     } catch (error) {
-      setNotice({ type: "error", title: "Действие не выполнено", text: (error as Error).message })
+      showNotice("error", "Действие не выполнено", (error as Error).message)
     } finally {
       setBusyAction(null)
     }
@@ -123,11 +121,15 @@ export function GiveawaysPage() {
         body: JSON.stringify({ running: nextRunning }),
       })
       setData(payload)
-      setNotice({
-        type: "success",
-        title: nextRunning ? "Розыгрыш запущен" : "Розыгрыш остановлен",
-        text: nextRunning && form.giveaway_type === "points" ? "Награда за баллы подключена. Участники попадут в список после покупки награды." : nextRunning ? "Бот начал собирать участников из чата." : "Сбор участников остановлен.",
-      })
+      showNotice(
+        "success",
+        nextRunning ? "Розыгрыш запущен" : "Розыгрыш остановлен",
+        nextRunning && form.giveaway_type === "points"
+          ? "Награда за баллы подключена. Участники попадут в список после покупки награды."
+          : nextRunning
+            ? "Бот начал собирать участников из чата."
+            : "Сбор участников остановлен."
+      )
     })
   }
 
@@ -136,10 +138,12 @@ export function GiveawaysPage() {
       await saveSettings()
       const payload = await requestJson<GiveawaysPayload>("/api/app/giveaways/reward/toggle", { method: "POST" })
       setData(payload)
-      setNotice(
+      showNotice(
+        payload.state.points_reward_ready ? "success" : "warning",
+        payload.state.points_reward_ready ? "Награда создана" : "Награда удалена",
         payload.state.points_reward_ready
-          ? { type: "success", title: "Награда создана", text: `${payload.state.points_reward_title} готова для розыгрыша.` }
-          : { type: "warning", title: "Награда удалена", text: "Покупки этой награды больше не будут добавлять участников." }
+          ? `${payload.state.points_reward_title} готова для розыгрыша.`
+          : "Покупки этой награды больше не будут добавлять участников."
       )
     })
   }
@@ -149,7 +153,7 @@ export function GiveawaysPage() {
       await saveSettings()
       const payload = await requestJson<GiveawaysPayload>("/api/app/giveaways/roll", { method: "POST" })
       setData(payload)
-      setNotice({ type: "success", title: "Победитель выбран", text: payload.state.winner ? `@${payload.state.winner.login}` : "Готово." })
+      showNotice("success", "Победитель выбран", payload.state.winner ? `@${payload.state.winner.login}` : "Готово.")
     })
   }
 
@@ -168,11 +172,11 @@ export function GiveawaysPage() {
       setWheelRotation((current) => current + 360 * Math.max(4, spinDuration) + (360 - targetAngle))
       await new Promise((resolve) => window.setTimeout(resolve, spinDuration * 1000))
       setData(payload)
-      setNotice({
-        type: "success",
-        title: wheelMode === "elimination" && payload.state.winner?.login !== resultLogin ? "Лот выбыл" : "Колесо остановилось",
-        text: resultLogin ? `RANDOM.ORG выбрал @${resultLogin}.` : "Готово.",
-      })
+      showNotice(
+        "success",
+        wheelMode === "elimination" && payload.state.winner?.login !== resultLogin ? "Лот выбыл" : "Колесо остановилось",
+        resultLogin ? `RANDOM.ORG выбрал @${resultLogin}.` : "Готово."
+      )
     })
   }
 
@@ -181,7 +185,7 @@ export function GiveawaysPage() {
     await runAction("clear", async () => {
       const payload = await requestJson<GiveawaysPayload>("/api/app/giveaways/clear", { method: "POST" })
       setData(payload)
-      setNotice({ type: "warning", title: "Розыгрыш очищен", text: "Список участников и сообщения победителя очищены." })
+      showNotice("warning", "Розыгрыш очищен", "Список участников и сообщения победителя очищены.")
     })
   }
 
@@ -193,7 +197,7 @@ export function GiveawaysPage() {
         body: JSON.stringify({ login }),
       })
       setData(payload)
-      setNotice({ type: "warning", title: "Участник удалён", text: `@${login} не попадёт в список до очистки розыгрыша.` })
+      showNotice("warning", "Участник удалён", `@${login} не попадёт в список до очистки розыгрыша.`)
     })
   }
 
@@ -238,8 +242,6 @@ export function GiveawaysPage() {
   return (
     <PageShell wide>
       <PageHeader title="Розыгрыши" description="Собирай участников по активности, слову или покупке награды за баллы." />
-
-      <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <div className="grid min-h-[620px] gap-4 xl:grid-cols-[minmax(280px,0.75fr)_minmax(520px,1.55fr)_minmax(340px,0.85fr)]">
         <Card className="min-h-full">

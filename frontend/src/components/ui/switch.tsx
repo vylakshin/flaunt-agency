@@ -1,37 +1,35 @@
+"use client"
+
 import * as React from "react"
+import { Switch as SwitchPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
-export function Switch({
-  checked,
-  onCheckedChange,
-  disabled,
+function Switch({
   className,
-}: {
-  checked?: boolean
-  onCheckedChange?: (checked: boolean) => void
-  disabled?: boolean
-  className?: string
+  size = "default",
+  ...props
+}: React.ComponentProps<typeof SwitchPrimitive.Root> & {
+  size?: "sm" | "default"
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onCheckedChange?.(!checked)}
+    <SwitchPrimitive.Root
+      data-slot="switch"
+      data-size={size}
       className={cn(
-        "relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-        checked ? "bg-primary" : "bg-muted",
+        "peer group/switch inline-flex shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-[1.15rem] data-[size=default]:w-8 data-[size=sm]:h-3.5 data-[size=sm]:w-6 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input dark:data-[state=unchecked]:bg-input/80",
         className
       )}
+      {...props}
     >
-      <span
+      <SwitchPrimitive.Thumb
+        data-slot="switch-thumb"
         className={cn(
-          "pointer-events-none block size-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
-          checked ? "translate-x-5" : "translate-x-0"
+          "pointer-events-none block rounded-full bg-background ring-0 transition-transform group-data-[size=default]/switch:size-4 group-data-[size=sm]/switch:size-3 data-[state=checked]:translate-x-[calc(100%-2px)] data-[state=unchecked]:translate-x-0 dark:data-[state=checked]:bg-primary-foreground dark:data-[state=unchecked]:bg-foreground"
         )}
       />
-    </button>
+    </SwitchPrimitive.Root>
   )
 }
+
+export { Switch }

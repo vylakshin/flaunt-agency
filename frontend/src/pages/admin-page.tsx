@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
+import { showNotice } from "@/lib/notify"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import { requestForm, requestJson } from "@/lib/api"
 import type { MutationResult, SettingsPayload } from "@/types/app"
@@ -61,7 +61,6 @@ function buildGlobalSettingsForm(data: SettingsPayload): GlobalSettingsForm {
 
 export function AdminPage() {
   const { data, isLoading, error, refetch } = useJsonQuery<SettingsPayload>("/api/app/settings")
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const [busyAction, setBusyAction] = useState<string | null>(null)
   const [presetUploadName, setPresetUploadName] = useState("")
   const [presetUploadFile, setPresetUploadFile] = useState<File | null>(null)
@@ -93,8 +92,6 @@ export function AdminPage() {
   async function mutateAdmin(action: "grant" | "revoke", userId: number) {
     const label = `${action}-${userId}`
     setBusyAction(label)
-    setNotice(null)
-
     try {
       await requestJson<MutationResult>(`/api/app/settings/admins/${action}`, {
         method: "POST",
@@ -102,17 +99,17 @@ export function AdminPage() {
         body: JSON.stringify({ user_id: userId }),
       })
       await refetch()
-      setNotice(
-        action === "grant"
-          ? { type: "success", title: "Администратор добавлен", text: "Доступ к админке обновлён." }
-          : { type: "warning", title: "Админка снята", text: "Пользователь больше не видит служебные разделы." },
+      showNotice(
+        action === "grant" ? "success" : "warning",
+        action === "grant" ? "Администратор добавлен" : "Админка снята",
+        action === "grant" ? "Доступ к админке обновлён." : "Пользователь больше не видит служебные разделы."
       )
     } catch (caughtError) {
-      setNotice({
-        type: "error",
-        title: action === "grant" ? "Не удалось выдать админку" : "Не удалось снять админку",
-        text: (caughtError as Error).message,
-      })
+      showNotice(
+        "error",
+        action === "grant" ? "Не удалось выдать админку" : "Не удалось снять админку",
+        (caughtError as Error).message
+      )
     } finally {
       setBusyAction(null)
     }
@@ -121,7 +118,6 @@ export function AdminPage() {
   async function saveGlobalSettings() {
     if (!globalForm) return
     setBusyAction("global-settings")
-    setNotice(null)
     try {
       await requestJson<MutationResult>("/api/app/settings/global", {
         method: "POST",
@@ -129,9 +125,9 @@ export function AdminPage() {
         body: JSON.stringify(globalForm),
       })
       await refetch()
-      setNotice({ type: "success", title: "Настройки сохранены", text: "Правила автоставок и диапазоны обновлены." })
+      showNotice("success", "Настройки сохранены", "Правила автоставок и диапазоны обновлены.")
     } catch (caughtError) {
-      setNotice({ type: "error", title: "Не удалось сохранить", text: (caughtError as Error).message })
+      showNotice("error", "Не удалось сохранить", (caughtError as Error).message)
     } finally {
       setBusyAction(null)
     }
@@ -139,7 +135,6 @@ export function AdminPage() {
 
   async function distributeQuestionPreset(fileName: string, presetName: string) {
     setBusyAction(`question-preset-access-${fileName}`)
-    setNotice(null)
     try {
       const result = await requestJson<
         MutationResult & {
@@ -154,15 +149,14 @@ export function AdminPage() {
         body: JSON.stringify({ file_name: fileName }),
       })
       await refetch()
-      setNotice({
-        type: result.failed ? "warning" : "success",
-        title: `Пресет «${presetName}» раздан`,
-        text:
-          result.message ??
-          `Добавлено: ${result.added ?? 0}. Уже был: ${result.skipped_existing ?? 0}. Пропущено по лимиту: ${result.skipped_limit ?? 0}.`,
-      })
+      showNotice(
+        result.failed ? "warning" : "success",
+        `Пресет «${presetName}» раздан`,
+        result.message ??
+          `Добавлено: ${result.added ?? 0}. Уже был: ${result.skipped_existing ?? 0}. Пропущено по лимиту: ${result.skipped_limit ?? 0}.`
+      )
     } catch (caughtError) {
-      setNotice({ type: "error", title: "Не удалось раздать пресет", text: (caughtError as Error).message })
+      showNotice("error", "Не удалось раздать пресет", (caughtError as Error).message)
     } finally {
       setBusyAction(null)
     }
@@ -174,11 +168,10 @@ export function AdminPage() {
 
   async function uploadQuestionPreset() {
     if (!presetUploadFile) {
-      setNotice({ type: "error", title: "Файл не выбран", text: "Выбери JSON-файл со стандартным паком вопросов." })
+      showNotice("error", "Файл не выбран", "Выбери JSON-файл со стандартным паком вопросов.")
       return
     }
     setBusyAction("question-preset-upload")
-    setNotice(null)
     try {
       const formData = new FormData()
       formData.set("config_name", presetUploadName)
@@ -188,9 +181,9 @@ export function AdminPage() {
       setPresetUploadFile(null)
       setPresetUploadInputKey((current) => current + 1)
       await refetch()
-      setNotice({ type: "success", title: "Пак загружен", text: "Новый стандартный конфиг появился в общем списке." })
+      showNotice("success", "Пак загружен", "Новый стандартный конфиг появился в общем списке.")
     } catch (caughtError) {
-      setNotice({ type: "error", title: "Не удалось загрузить пак", text: (caughtError as Error).message })
+      showNotice("error", "Не удалось загрузить пак", (caughtError as Error).message)
     } finally {
       setBusyAction(null)
     }
@@ -199,7 +192,6 @@ export function AdminPage() {
   async function deleteQuestionPreset(fileName: string, presetName: string) {
     if (!window.confirm(`Полностью удалить пак «${presetName}»: убрать у всех каналов и стереть его из админки?`)) return
     setBusyAction(`question-preset-delete-${fileName}`)
-    setNotice(null)
     try {
       const result = await requestJson<MutationResult & { deleted_links?: number; message?: string }>(
         "/api/app/settings/question-presets/delete",
@@ -210,13 +202,9 @@ export function AdminPage() {
         },
       )
       await refetch()
-      setNotice({
-        type: "warning",
-        title: `Пак «${presetName}» удалён полностью`,
-        text: result.message ?? `Отвязано у каналов: ${result.deleted_links ?? 0}.`,
-      })
+      showNotice("warning", `Пак «${presetName}» удалён полностью`, result.message ?? `Отвязано у каналов: ${result.deleted_links ?? 0}.`)
     } catch (caughtError) {
-      setNotice({ type: "error", title: "Не удалось удалить пак", text: (caughtError as Error).message })
+      showNotice("error", "Не удалось удалить пак", (caughtError as Error).message)
     } finally {
       setBusyAction(null)
     }
@@ -225,7 +213,6 @@ export function AdminPage() {
   async function revokeQuestionPreset(fileName: string, presetName: string) {
     if (!window.confirm(`Убрать пак «${presetName}» из общего доступа у всех каналов, но оставить его в админке?`)) return
     setBusyAction(`question-preset-access-${fileName}`)
-    setNotice(null)
     try {
       const result = await requestJson<MutationResult & { deleted_links?: number; message?: string }>(
         "/api/app/settings/question-presets/revoke",
@@ -236,13 +223,9 @@ export function AdminPage() {
         },
       )
       await refetch()
-      setNotice({
-        type: "warning",
-        title: `Пак «${presetName}» убран из общего доступа`,
-        text: result.message ?? `Убрано у каналов: ${result.deleted_links ?? 0}.`,
-      })
+      showNotice("warning", `Пак «${presetName}» убран из общего доступа`, result.message ?? `Убрано у каналов: ${result.deleted_links ?? 0}.`)
     } catch (caughtError) {
-      setNotice({ type: "error", title: "Не удалось убрать пак из общего доступа", text: (caughtError as Error).message })
+      showNotice("error", "Не удалось убрать пак из общего доступа", (caughtError as Error).message)
     } finally {
       setBusyAction(null)
     }
@@ -329,8 +312,6 @@ export function AdminPage() {
           </Button>
         </div>
       </div>
-
-      <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <div className="grid gap-4 md:grid-cols-3">
         <AdminMetric icon={ShieldCheck} label="Администраторы" value={data.admin_users.length} />

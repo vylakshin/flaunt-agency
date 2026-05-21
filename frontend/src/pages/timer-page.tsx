@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
+import { showNotice } from "@/lib/notify"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import { requestJson } from "@/lib/api"
 import type { MutationResult, TimerItem, TimersPayload } from "@/types/app"
@@ -44,7 +44,6 @@ export function TimerPage() {
   const { data, isLoading, error, refetch, setData } = useJsonQuery<TimersPayload>("/api/app/timers")
   const [isCreateOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState<TimerForm>(defaultTimerForm)
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [editingTimer, setEditingTimer] = useState<TimerItem | null>(null)
 
@@ -131,9 +130,13 @@ export function TimerPage() {
       setForm(defaultTimerForm)
       setCreateOpen(false)
       setEditingTimer(null)
-      setNotice({ type: "success", title: editingTimer ? "Таймер обновлён" : "Таймер добавлен", text: editingTimer ? form.name : "Он начнёт работать по заданным условиям." })
+      showNotice(
+        "success",
+        editingTimer ? "Таймер обновлён" : "Таймер добавлен",
+        editingTimer ? form.name : "Он начнёт работать по заданным условиям."
+      )
     } catch (error) {
-      setNotice({ type: "error", title: "Таймер не сохранён", text: (error as Error).message })
+      showNotice("error", "Таймер не сохранён", (error as Error).message)
     } finally {
       setActionBusy(null)
     }
@@ -149,9 +152,9 @@ export function TimerPage() {
       })
       if (data && result.timers) setData({ ...data, timers: result.timers })
       else await refetch()
-      setNotice({ type: "success", title: enabled ? "Таймер включён" : "Таймер отключён", text: timer.name })
+      showNotice("success", enabled ? "Таймер включён" : "Таймер отключён", timer.name)
     } catch (error) {
-      setNotice({ type: "error", title: "Таймер не обновлён", text: (error as Error).message })
+      showNotice("error", "Таймер не обновлён", (error as Error).message)
     } finally {
       setActionBusy(null)
     }
@@ -168,9 +171,9 @@ export function TimerPage() {
       })
       if (data && result.timers) setData({ ...data, timers: result.timers })
       else await refetch()
-      setNotice({ type: "success", title: "Таймер удалён", text: timer.name })
+      showNotice("success", "Таймер удалён", timer.name)
     } catch (error) {
-      setNotice({ type: "error", title: "Таймер не удалён", text: (error as Error).message })
+      showNotice("error", "Таймер не удалён", (error as Error).message)
     } finally {
       setActionBusy(null)
     }
@@ -198,8 +201,6 @@ export function TimerPage() {
           Добавить таймер
         </Button>
       </div>
-      <Toast notice={notice} onClose={() => setNotice(null)} />
-
       {data.timers.length ? (
         <div className="w-full divide-y border-y">
           {data.timers.map((timer) => (

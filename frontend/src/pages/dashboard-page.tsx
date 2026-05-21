@@ -30,11 +30,12 @@ import { StatCard } from "@/components/app/stat-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Dialog } from "@/components/ui/dialog"
+import { AppDialog } from "@/components/app/app-dialog"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Toast, type ToastNotice } from "@/components/ui/toast"
 import { useJsonQuery } from "@/hooks/use-json-query"
+import { showNotice } from "@/lib/notify"
 import { requestJson } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import type { DashboardPayload, MutationResult } from "@/types/app"
@@ -49,7 +50,6 @@ const quickLinks = [
 
 export function DashboardPage() {
   const { data, isLoading, error, refetch } = useJsonQuery<DashboardPayload>("/api/app/dashboard")
-  const [notice, setNotice] = useState<ToastNotice | null>(null)
   const [actionBusy, setActionBusy] = useState<string | null>(null)
   const [isModeratorDialogOpen, setModeratorDialogOpen] = useState(false)
 
@@ -67,11 +67,10 @@ export function DashboardPage() {
 
   async function withAction(action: string, run: () => Promise<void>) {
     setActionBusy(action)
-    setNotice(null)
     try {
       await run()
     } catch (err) {
-      setNotice({ type: "error", title: "Действие не выполнено", text: (err as Error).message })
+      showNotice("error", "Действие не выполнено", (err as Error).message)
     } finally {
       setActionBusy(null)
     }
@@ -82,11 +81,11 @@ export function DashboardPage() {
       const result = await requestJson<MutationResult>("/api/app/dashboard/chat/activate", { method: "POST" })
       await refetch()
       setModeratorDialogOpen(true)
-      setNotice({
-        type: result.warning ? "warning" : "success",
-        title: result.warning ? "Проверь подключение" : "Бот подключается",
-        text: result.warning || "Бот должен появиться в чате через несколько секунд.",
-      })
+      showNotice(
+        result.warning ? "warning" : "success",
+        result.warning ? "Проверь подключение" : "Бот подключается",
+        result.warning || "Бот должен появиться в чате через несколько секунд."
+      )
     })
   }
 
@@ -95,11 +94,11 @@ export function DashboardPage() {
       const result = await requestJson<MutationResult>("/api/app/dashboard/chat/moderator", { method: "POST" })
       await refetch()
       if (result.warning) {
-        setNotice({ type: "warning", title: "Проверь модератора", text: result.warning })
+        showNotice("warning", "Проверь модератора", result.warning)
         return
       }
       setModeratorDialogOpen(false)
-      setNotice({ type: "success", title: "Бот стал модератором", text: "Права обновлены, бот готов работать в чате." })
+      showNotice("success", "Бот стал модератором", "Права обновлены, бот готов работать в чате.")
     })
   }
 
@@ -109,7 +108,7 @@ export function DashboardPage() {
       await refetch()
       setModeratorDialogOpen(false)
       const message = result.warning || "Бот отключён от чата и снят с модераторов."
-      setNotice({ type: message.includes("но") ? "warning" : "success", title: "Бот отключён", text: message })
+      showNotice(message.includes("но") ? "warning" : "success", "Бот отключён", message)
     })
   }
 
@@ -137,8 +136,6 @@ export function DashboardPage() {
           </Badge>
         }
       />
-
-      <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <ConnectionHero
         actionBusy={actionBusy}
@@ -232,7 +229,7 @@ function ConnectionHero({
   ]
 
   return (
-    <section className="panel overflow-hidden">
+    <Card className="overflow-hidden py-0">
       <div className="grid gap-6 p-6 lg:grid-cols-[1fr_auto] lg:items-center">
         <div className="space-y-5">
           <div className="flex flex-wrap items-center gap-3">
@@ -288,7 +285,7 @@ function ConnectionHero({
           ) : null}
         </div>
       </div>
-    </section>
+    </Card>
   )
 }
 
@@ -486,7 +483,7 @@ function BotModeratorDialog({
   const busy = actionBusy === "make-moderator" || actionBusy === "deactivate-chat"
 
   return (
-    <Dialog
+    <AppDialog
       open={isOpen}
       onClose={onClose}
       title="Бот подключён к каналу"
@@ -526,7 +523,7 @@ function BotModeratorDialog({
           /mod {botLogin}
         </div>
       </div>
-    </Dialog>
+    </AppDialog>
   )
 }
 
