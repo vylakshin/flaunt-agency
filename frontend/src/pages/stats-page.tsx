@@ -1,10 +1,19 @@
-﻿import { Activity, AlertTriangle, Bot, Clock3, MessageSquareText, Radio, Server, Sparkles, TimerReset } from "lucide-react"
-import { useEffect, type ReactNode } from "react"
+﻿import { useEffect, useMemo } from "react"
 
-import { PageHeader } from "@/components/app/page-header"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageShell } from "@/components/app/page-shell"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  StatusBoard,
+  StatusBoardHeader,
+  StatusGlobalBanner,
+  StatusSection,
+  buildStatusBars,
+  operationStatus,
+  operationUptime,
+  statusToPercent,
+  type StatusLevel,
+  type StatusMonitor,
+} from "@/components/status/status-board"
 import { useJsonQuery } from "@/hooks/use-json-query"
 import type { StatsPayload } from "@/types/app"
 
@@ -12,239 +21,150 @@ export function StatsPage() {
   const { data, isLoading, error } = useJsonQuery<StatsPayload>("/api/app/stats")
 
   useEffect(() => {
-    if (data) document.title = `${data.user.login} — статистика`
+    if (data) document.title = "Flaunt — Healthcheck"
   }, [data])
+
+  const board = useMemo(() => (data ? buildStatusBoard(data) : null), [data])
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-16 w-72" />
-        <Skeleton className="h-56 w-full" />
-      </div>
+      <PageShell wide>
+        <div className="status-board">
+          <Skeleton className="h-14 w-full max-w-md" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-48 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
+      </PageShell>
     )
   }
 
-  if (error || !data) {
-    return <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm">{error ?? "Не удалось загрузить статистику."}</div>
+  if (error || !data || !board) {
+    return (
+      <PageShell wide>
+        <div className="status-board">
+          <div className="status-section-panel p-4 text-sm text-red-300">{error ?? "Не удалось загрузить статус сервиса."}</div>
+        </div>
+      </PageShell>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Статистика"
-        description={`Обновлено ${data.stats_updated_at}. Здесь собраны продуктовые метрики и состояние самого сервиса.`}
-      />
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {data.stats_cards.map((card, index) => {
-          const Icon = [MessageSquareText, Clock3, Radio, Activity][index] ?? Sparkles
-          return (
-            <Card key={card.label}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between gap-3">
-                  <CardDescription>{card.label}</CardDescription>
-                  <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="size-5" />
-                  </div>
-                </div>
-                <CardTitle className="text-3xl">{card.value}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{card.description}</p>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Server className="size-5" />
-                Сервис
-              </CardTitle>
-              <CardDescription>Внутренние метрики приложения, внешних API и фоновых тиков.</CardDescription>
-            </div>
-            <Badge variant={metricsBadgeVariant(data.service_metrics.health.status)}>{data.service_metrics.health.label}</Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {data.service_metrics.overview_cards.map((item, index) => {
-              const Icon = [TimerReset, MessageSquareText, Bot, AlertTriangle][index] ?? Activity
-              return (
-                <div key={item.label} className="rounded-lg border bg-background p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm text-muted-foreground">{item.label}</div>
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-                      <Icon className="size-4" />
-                    </div>
-                  </div>
-                  <div className="mt-3 text-2xl font-semibold">{item.value}</div>
-                  <div className="mt-1 text-sm text-muted-foreground">{item.description}</div>
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-            <div className="space-y-3">
-              <div className="text-sm font-medium">Контуры</div>
-              <div className="divide-y rounded-lg border bg-background">
-                {data.service_metrics.pipelines.map((item) => (
-                  <div key={item.label} className="flex items-start justify-between gap-3 p-4">
-                    <div className="min-w-0">
-                      <div className="font-medium">{item.label}</div>
-                      <div className="mt-1 text-sm text-muted-foreground">{item.detail}</div>
-                    </div>
-                    <Badge variant={metricsBadgeVariant(item.status)}>{item.status_label}</Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="text-sm font-medium">Операции</div>
-              <div className="divide-y rounded-lg border bg-background">
-                {data.service_metrics.operations.map((item) => (
-                  <div key={item.label} className="grid gap-2 p-4 sm:grid-cols-[1.2fr_repeat(4,minmax(0,1fr))]">
-                    <div className="font-medium">{item.label}</div>
-                    <StatValue label="Среднее" value={`${item.avg_ms.toFixed(1)} ms`} />
-                    <StatValue label="Последнее" value={`${item.last_ms.toFixed(1)} ms`} />
-                    <StatValue label="Пик" value={`${item.max_ms.toFixed(1)} ms`} />
-                    <StatValue label="Запусков" value={String(item.count)} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
-            <div className="space-y-3">
-              <div className="text-sm font-medium">Счётчики</div>
-              <div className="divide-y rounded-lg border bg-background">
-                {data.service_metrics.counters.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-3 p-4">
-                    <span className="text-sm text-muted-foreground">{item.label}</span>
-                    <span className="font-semibold">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="text-sm font-medium">Свежие ошибки</div>
-              <div className="divide-y rounded-lg border bg-background">
-                {data.service_metrics.recent_errors.length ? (
-                  data.service_metrics.recent_errors.map((item) => (
-                    <div key={`${item.key}-${item.age_label}-${item.message}`} className="p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{item.key}</span>
-                        <Badge variant="outline">{item.age_label} назад</Badge>
-                      </div>
-                      <div className="mt-2 text-sm text-muted-foreground">{item.message}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-sm text-muted-foreground">Свежих ошибок нет.</div>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Срез по функциям</CardTitle>
-            <CardDescription>Что реально используют каналы в текущей панели.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {data.stats_highlights.map((item) => (
-              <div key={item.label} className="flex items-center justify-between rounded-lg border bg-background p-3">
-                <span className="text-sm text-muted-foreground">{item.label}</span>
-                <span className="font-semibold">{item.value}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Каналы</CardTitle>
-            <CardDescription>Статус бота и использование функций по каждому каналу.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.recent_channels.map((channel) => (
-              <div key={`${channel.login}-${channel.connected_at}`} className="rounded-lg border bg-background p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="truncate font-medium">{channel.display_name}</div>
-                      <Badge variant={channel.is_live ? "success" : "outline"}>{channel.is_live ? "В эфире" : "Оффлайн"}</Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">twitch.tv/{channel.login}</div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={channel.chat_connected ? "success" : "destructive"}>
-                      {channel.chat_connected ? "Чат активен" : "Чат не активен"}
-                    </Badge>
-                    {channel.uses_custom_config ? <Badge variant="outline">свой конфиг</Badge> : null}
-                  </div>
-                </div>
-
-                <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-4">
-                  <MetricPill icon={<MessageSquareText className="size-4" />} label="Команды" value={`${channel.enabled_custom_command_count}/${channel.custom_command_count}`} />
-                  <MetricPill icon={<Clock3 className="size-4" />} label="Таймеры" value={`${channel.enabled_timer_count}/${channel.timer_count}`} />
-                  <MetricPill icon={<Sparkles className="size-4" />} label="Aliases/keywords" value={`${channel.command_alias_count}/${channel.command_keyword_count}`} />
-                  <MetricPill icon={<Bot className="size-4" />} label="Логи" value={String(channel.action_log_count)} />
-                </div>
-
-                <div className="mt-3 text-xs text-muted-foreground">Подключён: {channel.connected_at} · Обновлён: {channel.updated_at}</div>
-
-                {channel.stream_title ? (
-                  <div className="mt-3 rounded-md bg-muted/50 p-3 text-sm">
-                    <div className="font-medium">{channel.stream_title}</div>
-                    <div className="text-muted-foreground">
-                      {channel.stream_category || "Без категории"} · {channel.viewer_count} зрителей
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    <PageShell wide className="max-w-5xl">
+      <StatusBoard>
+        <StatusBoardHeader updatedAt={data.service_metrics.updated_at || data.stats_updated_at} />
+        <StatusGlobalBanner status={board.globalStatus} label={board.globalLabel} uptimeLabel={data.service_metrics.uptime_label} />
+        <StatusSection title="OVERVIEW" monitors={board.overview} />
+        <StatusSection title="PIPELINES" monitors={board.pipelines} />
+        <StatusSection title="OPERATIONS" monitors={board.operations} />
+        <StatusSection title="SERVICES" monitors={board.services} />
+        {board.incidents.length ? <StatusSection title="INCIDENTS" monitors={board.incidents} /> : null}
+      </StatusBoard>
+    </PageShell>
   )
 }
 
-function MetricPill({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
-      <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
-        {icon}
-        <span className="truncate">{label}</span>
-      </span>
-      <span className="font-semibold">{value}</span>
-    </div>
-  )
+function buildStatusBoard(data: StatsPayload) {
+  const metrics = data.service_metrics
+  const health = normalizeHealth(metrics.health.status)
+  const chatFallbacks = Number(metrics.overview_cards.find((item) => item.label.includes("Fallback"))?.value ?? 0)
+  const recentErrors = metrics.recent_errors.length
+
+  const overview: StatusMonitor[] = [
+    {
+      id: "platform",
+      label: "Flaunt Platform",
+      status: health,
+      uptimePercent: weightedOverviewUptime(health, metrics.pipelines.map((item) => normalizeHealth(item.status))),
+      bars: buildStatusBars(health),
+    },
+    {
+      id: "runtime",
+      label: "Runtime ticker",
+      status: normalizeHealth(metrics.pipelines[0]?.status ?? health),
+      uptimePercent: statusToPercent(normalizeHealth(metrics.pipelines[0]?.status ?? health)),
+      bars: buildStatusBars(normalizeHealth(metrics.pipelines[0]?.status ?? health)),
+    },
+    {
+      id: "twitch",
+      label: "Twitch API",
+      status: normalizeHealth(metrics.pipelines[1]?.status ?? health),
+      uptimePercent: statusToPercent(normalizeHealth(metrics.pipelines[1]?.status ?? health)),
+      bars: buildStatusBars(normalizeHealth(metrics.pipelines[1]?.status ?? health)),
+    },
+    {
+      id: "chat",
+      label: "Chat delivery",
+      status: chatFallbacks > 25 ? "warning" : chatFallbacks > 80 ? "error" : "healthy",
+      uptimePercent: chatFallbacks > 80 ? 94.5 : chatFallbacks > 25 ? 98.1 : 99.92,
+      bars: buildStatusBars(chatFallbacks > 25 ? "warning" : "healthy"),
+    },
+  ]
+
+  const pipelines: StatusMonitor[] = metrics.pipelines.map((item) => {
+    const status = normalizeHealth(item.status)
+    return {
+      id: `pipeline-${item.label}`,
+      label: item.label,
+      status,
+      uptimePercent: statusToPercent(status),
+      bars: buildStatusBars(status),
+    }
+  })
+
+  const operations: StatusMonitor[] = metrics.operations.map((item) => {
+    const status = operationStatus(item.last_ms, item.count)
+    return {
+      id: `op-${item.label}`,
+      label: item.label,
+      status,
+      uptimePercent: operationUptime(item.last_ms, item.count),
+      bars: buildStatusBars(status),
+    }
+  })
+
+  const services: StatusMonitor[] = metrics.counters.map((item) => {
+    const isFailureCounter = /ошиб|fail|пропуск/i.test(item.label)
+    const status: StatusLevel = isFailureCounter && item.value > 0 ? (item.value > 20 ? "error" : "warning") : "healthy"
+    return {
+      id: `counter-${item.label}`,
+      label: item.label,
+      status,
+      uptimePercent: isFailureCounter && item.value > 0 ? (item.value > 20 ? 93.8 : 98.6) : 100,
+      bars: buildStatusBars(status),
+    }
+  })
+
+  const incidents: StatusMonitor[] = metrics.recent_errors.slice(0, 6).map((item, index) => ({
+    id: `err-${item.key}-${index}`,
+    label: item.key,
+    status: "error" as const,
+    uptimePercent: 0,
+    bars: buildStatusBars("error"),
+    windowLabel: `${item.age_label} назад`,
+  }))
+
+  const globalStatus: StatusLevel =
+    health === "error" || recentErrors > 8 ? "error" : health === "warning" || recentErrors > 0 ? "warning" : "healthy"
+
+  const globalLabel =
+    globalStatus === "healthy"
+      ? "All Systems Operational"
+      : globalStatus === "warning"
+        ? "Degraded Performance"
+        : "Service Disruption"
+
+  return { overview, pipelines, operations, services, incidents, globalStatus, globalLabel }
 }
 
-function StatValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-medium">{value}</div>
-    </div>
-  )
+function normalizeHealth(status: string): StatusLevel {
+  if (status === "healthy" || status === "ok") return "healthy"
+  if (status === "warning") return "warning"
+  return "error"
 }
 
-function metricsBadgeVariant(status: "healthy" | "warning" | "error"): "success" | "outline" | "destructive" {
-  if (status === "healthy") return "success"
-  if (status === "error") return "destructive"
-  return "outline"
+function weightedOverviewUptime(platform: StatusLevel, pipelineStatuses: StatusLevel[]) {
+  const values = [statusToPercent(platform), ...pipelineStatuses.map(statusToPercent)]
+  const sum = values.reduce((total, value) => total + value, 0)
+  return Math.round((sum / values.length) * 100) / 100
 }

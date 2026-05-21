@@ -214,4 +214,187 @@
   .kbd-hint {
     @apply rounded-md border border-border/80 bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground;
   }
+
+  .status-board {
+    --status-bg: #0a0e14;
+    --status-panel: rgba(18, 24, 32, 0.96);
+    --status-panel-border: rgba(255, 255, 255, 0.06);
+    --status-text: #f3f6fb;
+    --status-muted: rgba(243, 246, 251, 0.55);
+    --status-up: #3bd671;
+    --status-up-text: #052e16;
+    --status-warn: #fbbf24;
+    --status-warn-text: #422006;
+    --status-down: #f87171;
+    --status-down-text: #450a0a;
+    --status-pending: #64748b;
+    --status-maintenance: #60a5fa;
+
+    margin: -0.25rem -0.5rem 0;
+    padding: 1.25rem 1rem 2rem;
+    border-radius: calc(var(--radius) + 6px);
+    background:
+      radial-gradient(ellipse 90% 60% at 0% 0%, rgba(59, 214, 113, 0.08), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 100% 0%, rgba(56, 189, 248, 0.06), transparent 50%),
+      var(--status-bg);
+    color: var(--status-text);
+  }
+
+  .status-board-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .status-board-title {
+    flex: 1 1 auto;
+    font-size: clamp(1.1rem, 2.4vw, 1.45rem);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .status-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.15rem;
+    border-radius: calc(var(--radius) + 2px);
+    border: 1px solid var(--status-panel-border);
+    background: var(--status-panel);
+  }
+
+  .status-banner-ok {
+    color: var(--status-up);
+  }
+
+  .status-banner-warn {
+    color: var(--status-warn);
+  }
+
+  .status-banner-error {
+    color: var(--status-down);
+  }
+
+  .status-section {
+    margin-bottom: 1.35rem;
+  }
+
+  .status-section-title {
+    margin: 0 0 0.65rem;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .status-section-panel {
+    overflow: hidden;
+    border-radius: calc(var(--radius) + 2px);
+    border: 1px solid var(--status-panel-border);
+    background: var(--status-panel);
+  }
+
+  .status-monitor-row {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, auto) minmax(0, 1fr) minmax(10rem, 42%);
+    align-items: center;
+    gap: 0.85rem 1rem;
+    padding: 0.9rem 1rem;
+    border-top: 1px solid var(--status-panel-border);
+  }
+
+  .status-monitor-row:first-child {
+    border-top: none;
+  }
+
+  .status-uptime-badge {
+    min-width: 4.25rem;
+    border-radius: 0.45rem;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .status-badge-up {
+    background: var(--status-up);
+    color: var(--status-up-text);
+  }
+
+  .status-badge-warn {
+    background: var(--status-warn);
+    color: var(--status-warn-text);
+  }
+
+  .status-badge-down {
+    background: var(--status-down);
+    color: var(--status-down-text);
+  }
+
+  .status-monitor-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .status-monitor-graph {
+    min-width: 0;
+  }
+
+  .status-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 2.35rem;
+    overflow: hidden;
+  }
+
+  .status-bar {
+    flex: 1 1 0;
+    min-width: 2px;
+    max-width: 6px;
+    height: 100%;
+    border-radius: 2px 2px 1px 1px;
+  }
+
+  .status-bar-up {
+    background: var(--status-up);
+  }
+
+  .status-bar-down {
+    background: var(--status-down);
+  }
+
+  .status-bar-pending {
+    background: var(--status-pending);
+  }
+
+  .status-bar-maintenance {
+    background: var(--status-maintenance);
+  }
+
+  .status-graph-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.35rem;
+    font-size: 0.68rem;
+    color: var(--status-muted);
+  }
+
+  @media (max-width: 768px) {
+    .status-monitor-row {
+      grid-template-columns: minmax(4.25rem, auto) 1fr;
+      grid-template-rows: auto auto;
+    }
+
+    .status-monitor-graph {
+      grid-column: 1 / -1;
+    }
+  }
 }

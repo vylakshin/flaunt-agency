@@ -53,7 +53,7 @@ const mainNavItems = [
 
 const adminNavItems = [
   { to: "/admin", label: "Админ", icon: ShieldCheck },
-  { to: "/stats", label: "Статистика", icon: BarChart3 },
+  { to: "/stats", label: "Статус", icon: BarChart3 },
 ]
 
 export function AppFrame() {
