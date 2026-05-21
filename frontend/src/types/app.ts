@@ -65,8 +65,14 @@ export type DashboardPayload = {
     is_active: boolean
     paused: boolean
     passive_mode: boolean
+    passive_waiting_for_live: boolean
+    passive_result_seconds_left: number
+    auto_rounds_stopped: boolean
     next_round_in: number
+    seconds_left: number
+    last_no_winner: boolean
     category: string
+    hint: string
     masked_answer: string
     top_players: Array<{
       username: string

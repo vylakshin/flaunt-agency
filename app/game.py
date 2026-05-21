@@ -122,7 +122,25 @@ class GameManager:
         self._recent_question_keys: deque[tuple[str, str, str]] = deque(maxlen=QUESTION_REPEAT_PROTECTION_ROUNDS)
         self._paused_at: Optional[float] = None
         self._next_round_delay_remaining: Optional[int] = None
+        self.auto_rounds_stopped: bool = False
+        self.passive_waiting_for_live: bool = False
         self._rebuild_question_queue()
+
+    def _cancel_next_round_task(self) -> None:
+        if self._next_round_task and not self._next_round_task.done():
+            self._next_round_task.cancel()
+        self._next_round_task = None
+
+    def _should_schedule_passive_round(self) -> bool:
+        return (
+            self.config.passive_mode
+            and not self.auto_rounds_stopped
+            and not self.current_round
+            and not self.paused
+            and not self.next_round_at
+            and bool(self.questions)
+            and (self._next_round_task is None or self._next_round_task.done())
+        )
 
     def update_config(
         self,
@@ -152,12 +170,14 @@ class GameManager:
             was_passive_mode = bool(self.config.passive_mode)
             self.config.passive_mode = next_passive_mode
             if was_passive_mode and not next_passive_mode and not self.current_round:
-                if self._next_round_task and not self._next_round_task.done():
-                    self._next_round_task.cancel()
+                self._cancel_next_round_task()
                 self.next_round_at = None
                 self._next_round_delay_remaining = None
-                if not self.paused and self.questions:
+                self.passive_waiting_for_live = False
+                if not self.paused and self.questions and not self.auto_rounds_stopped:
                     self._schedule_next_round(delay_override=0)
+            if not was_passive_mode and next_passive_mode and not self.current_round:
+                self.auto_rounds_stopped = False
         if quiet_mode is not None:
             self.config.quiet_mode = bool(quiet_mode)
         if chat_questions_enabled is not None:
@@ -170,7 +190,7 @@ class GameManager:
         if should_reload:
             self.questions = self._load_questions()
             self._rebuild_question_queue()
-        if self.config.passive_mode and not self.current_round and not self.paused and not self.next_round_at and self.questions:
+        if self._should_schedule_passive_round():
             self._schedule_next_round()
 
     def _apply_speed_profile(self) -> None:
@@ -252,12 +272,11 @@ class GameManager:
         self._clients.discard(websocket)
 
     async def tick(self) -> None:
-        if self.config.passive_mode and not self.current_round and not self.paused and not self.next_round_at and self.questions:
+        if self._should_schedule_passive_round():
             self._schedule_next_round()
         if not self._clients:
             return
-        if self.current_round or self.paused or self.next_round_at:
-            await self.broadcast_state()
+        await self.broadcast_state()
 
     async def broadcast_state(self) -> None:
         payload = self.get_public_state()
@@ -292,7 +311,9 @@ class GameManager:
             'last_no_winner': self.last_no_winner,
             'last_round_finished_at': float(self.last_round_finished_at or 0),
             'passive_result_seconds_left': passive_result_seconds_left,
-            'next_round_in': max(0, int(self.next_round_at - time.time())) if self.next_round_at else 0,
+            'passive_waiting_for_live': bool(self.passive_waiting_for_live),
+            'auto_rounds_stopped': bool(self.auto_rounds_stopped),
+            'next_round_in': max(0, int(math.ceil(self.next_round_at - time.time()))) if self.next_round_at else 0,
             'top_players': db.get_top_players(self.config.scope_id, 3),
             'season': self._build_season_payload(latest_season),
             'season_history': self._build_season_history_payload(latest_season),
@@ -387,7 +408,8 @@ class GameManager:
             self._next_round_delay_remaining = None
             return
         if self._next_round_task and not self._next_round_task.done() and self._next_round_task is not current_task:
-            self._next_round_task.cancel()
+            self._cancel_next_round_task()
+        self.passive_waiting_for_live = False
         self._next_round_task = asyncio.create_task(self._auto_next_round(delay))
 
     async def set_category(self, category: str) -> str:
@@ -433,6 +455,9 @@ class GameManager:
             self.last_round_finished_at = None
             self.next_round_at = None
             self._next_round_delay_remaining = None
+            self.passive_waiting_for_live = False
+            self.auto_rounds_stopped = False
+            self._cancel_next_round_task()
             if self._round_task and not self._round_task.done():
                 self._round_task.cancel()
             self._round_task = asyncio.create_task(self._round_loop())
@@ -633,8 +658,7 @@ class GameManager:
     async def refresh_round(self) -> str:
         async with self._lock:
             db.reset_points(self.config.scope_id)
-            if self._next_round_task and not self._next_round_task.done():
-                self._next_round_task.cancel()
+            self._cancel_next_round_task()
             self.next_round_at = None
             self._next_round_delay_remaining = None
             if self.current_round and self.current_round.is_active:
@@ -664,10 +688,9 @@ class GameManager:
         self._paused_at = time.time()
         self.paused = True
         if self.next_round_at:
-            self._next_round_delay_remaining = max(0, int(self.next_round_at - self._paused_at))
+            self._next_round_delay_remaining = max(0, int(math.ceil(self.next_round_at - self._paused_at)))
             self.next_round_at = None
-            if self._next_round_task and not self._next_round_task.done():
-                self._next_round_task.cancel()
+            self._cancel_next_round_task()
         await self.broadcast_state()
         return 'Игра поставлена на паузу.'
 
@@ -690,8 +713,7 @@ class GameManager:
         async with self._lock:
             if self._round_task and not self._round_task.done():
                 self._round_task.cancel()
-            if self._next_round_task and not self._next_round_task.done():
-                self._next_round_task.cancel()
+            self._cancel_next_round_task()
             self.current_round = None
             self.last_winner = None
             self.last_no_winner = False
@@ -700,6 +722,8 @@ class GameManager:
             self.paused = False
             self._paused_at = None
             self._next_round_delay_remaining = None
+            self.passive_waiting_for_live = False
+            self.auto_rounds_stopped = True
             self._cooldowns.clear()
             db.reset_points(self.config.scope_id)
         await self.broadcast_state()
@@ -726,8 +750,11 @@ class GameManager:
             if self.current_round and self.current_round.is_active:
                 return
             if self.config.passive_mode and not await self._passive_mode_gate_passed():
+                self.passive_waiting_for_live = True
+                await self.broadcast_state()
                 self._schedule_next_round(delay_override=PASSIVE_MODE_RETRY_DELAY_SECONDS)
                 return
+            self.passive_waiting_for_live = False
             self.next_round_at = None
             self._next_round_delay_remaining = None
             await self.start_round()

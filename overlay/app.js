@@ -22,6 +22,13 @@ function isPassiveResultVisible(state) {
   return Number(state.passive_result_seconds_left || 0) > 0;
 }
 
+function shouldShowPassiveWait(state) {
+  if (!state || !state.passive_mode || state.is_active) return false;
+  if (isPassiveResultVisible(state)) return true;
+  if (state.passive_waiting_for_live) return true;
+  return Number(state.next_round_in || 0) > 0;
+}
+
 function formatTime(seconds) {
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
   const secs = (seconds % 60).toString().padStart(2, '0');
@@ -59,14 +66,33 @@ function renderTimer(state) {
   }
 
   if (state.passive_mode && !state.is_active) {
+    if (state.passive_waiting_for_live) {
+      timerEl.textContent = 'Ожидание эфира';
+      return;
+    }
+    if (isPassiveResultVisible(state)) {
+      timerEl.textContent = '';
+      return;
+    }
+    const seconds = Math.max(0, state.next_round_in || 0);
+    if (seconds > 0) {
+      timerEl.textContent = `Следующий раунд ${formatTime(seconds)}`;
+      return;
+    }
+    if (state.auto_rounds_stopped) {
+      timerEl.textContent = 'Игра остановлена';
+      return;
+    }
     timerEl.textContent = '';
     return;
   }
 
-  if (!state.is_active && state.last_winner) {
+  if (!state.is_active && (state.last_winner || state.last_no_winner)) {
     const seconds = Math.max(0, state.next_round_in || 0);
-    timerEl.textContent = `До нового раунда ${formatTime(seconds)}`;
-    return;
+    if (seconds > 0) {
+      timerEl.textContent = `До нового раунда ${formatTime(seconds)}`;
+      return;
+    }
   }
 
   timerEl.textContent = formatTime(Math.max(0, state.seconds_left || 0));
@@ -82,15 +108,17 @@ function startLocalTimer() {
     }
 
     if (latestState.passive_mode && !latestState.is_active) {
-      if (!isPassiveResultVisible(latestState)) {
-        if (overlayEl) overlayEl.classList.add('hidden');
-        hideWinToast();
-        return;
+      if (isPassiveResultVisible(latestState)) {
+        latestState = {
+          ...latestState,
+          passive_result_seconds_left: Math.max(0, Number(latestState.passive_result_seconds_left || 0) - 1),
+        };
+      } else if (!latestState.passive_waiting_for_live && Number(latestState.next_round_in || 0) > 0) {
+        latestState = {
+          ...latestState,
+          next_round_in: Math.max(0, (latestState.next_round_in || 0) - 1),
+        };
       }
-      latestState = {
-        ...latestState,
-        passive_result_seconds_left: Math.max(0, Number(latestState.passive_result_seconds_left || 0) - 1),
-      };
       renderTimer(latestState);
       return;
     }
@@ -100,7 +128,7 @@ function startLocalTimer() {
         ...latestState,
         seconds_left: Math.max(0, (latestState.seconds_left || 0) - 1),
       };
-    } else if (latestState.last_winner) {
+    } else if (latestState.last_winner || latestState.last_no_winner) {
       latestState = {
         ...latestState,
         next_round_in: Math.max(0, (latestState.next_round_in || 0) - 1),
@@ -115,7 +143,8 @@ function applyState(state) {
   latestState = { ...state };
   const isPassive = Boolean(state.passive_mode);
   const showPassiveResult = isPassiveResultVisible(state);
-  const shouldHidePassiveOverlay = isPassive && !state.is_active && !showPassiveResult;
+  const showPassiveWait = shouldShowPassiveWait(state);
+  const shouldHidePassiveOverlay = isPassive && !state.is_active && !showPassiveWait;
 
   if (overlayEl) {
     overlayEl.classList.toggle('hidden', shouldHidePassiveOverlay);
@@ -132,9 +161,26 @@ function applyState(state) {
     return;
   }
 
-  categoryEl.textContent = state.category || '—';
-  hintEl.textContent = state.hint || 'Ожидание раунда…';
-  answerEl.innerHTML = renderMaskedAnswer(state.masked_answer || '—');
+  if (isPassive && !state.is_active) {
+    if (state.passive_waiting_for_live) {
+      categoryEl.textContent = '—';
+      hintEl.textContent = 'Ожидание начала эфира…';
+      answerEl.innerHTML = '';
+    } else if (!showPassiveResult && Number(state.next_round_in || 0) > 0) {
+      categoryEl.textContent = '—';
+      hintEl.textContent = 'Следующий раунд скоро';
+      answerEl.innerHTML = '';
+    } else {
+      categoryEl.textContent = state.category || '—';
+      hintEl.textContent = state.hint || 'Ожидание раунда…';
+      answerEl.innerHTML = renderMaskedAnswer(state.masked_answer || '—');
+    }
+  } else {
+    categoryEl.textContent = state.category || '—';
+    hintEl.textContent = state.hint || 'Ожидание раунда…';
+    answerEl.innerHTML = renderMaskedAnswer(state.masked_answer || '—');
+  }
+
   renderTimer(latestState);
 
   if (isPassive) {
@@ -161,7 +207,7 @@ function applyState(state) {
     hideWinToast();
   }
 
-  if (isPassive) {
+  if (isPassive && !state.is_active) {
     renderTop([]);
   } else {
     renderTop(state.top_players || []);

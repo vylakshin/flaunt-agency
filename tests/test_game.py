@@ -84,3 +84,78 @@ class GameManagerPassiveModeTests(unittest.IsolatedAsyncioTestCase):
             manager._round_task.cancel()
         if manager._next_round_task and not manager._next_round_task.done():
             manager._next_round_task.cancel()
+
+    async def test_stop_game_prevents_passive_auto_schedule(self) -> None:
+        questions = [
+            {
+                "category": "Кино",
+                "hint": "Подсказка",
+                "answer": "ответ",
+                "aliases": [],
+            }
+        ]
+
+        with patch("app.game.load_questions_payload_from_source", return_value=questions):
+            manager = GameManager(
+                GameChannelConfig(
+                    scope_id="user:1",
+                    broadcaster_id="1",
+                    channel_name="owner",
+                    questions_path="db-preset://preset-1",
+                    questions_path_main="",
+                    questions_path_dota="",
+                    passive_mode=True,
+                )
+            )
+
+        manager._schedule_next_round(delay_override=120)
+        await manager.stop_game()
+        await manager.tick()
+        await asyncio.sleep(0)
+
+        self.assertTrue(manager.auto_rounds_stopped)
+        self.assertIsNone(manager.next_round_at)
+        self.assertIsNone(manager.current_round)
+
+        if manager._next_round_task and not manager._next_round_task.done():
+            manager._next_round_task.cancel()
+
+    async def test_start_round_cancels_pending_auto_next_task(self) -> None:
+        questions = [
+            {
+                "category": "Кино",
+                "hint": "Подсказка",
+                "answer": "ответ",
+                "aliases": [],
+            }
+        ]
+
+        with patch("app.game.load_questions_payload_from_source", return_value=questions):
+            manager = GameManager(
+                GameChannelConfig(
+                    scope_id="user:1",
+                    broadcaster_id="1",
+                    channel_name="owner",
+                    questions_path="db-preset://preset-1",
+                    questions_path_main="",
+                    questions_path_dota="",
+                    passive_mode=True,
+                )
+            )
+
+        manager._schedule_next_round(delay_override=120)
+        pending_task = manager._next_round_task
+        self.assertIsNotNone(pending_task)
+
+        await manager.start_round()
+
+        self.assertTrue(manager.current_round and manager.current_round.is_active)
+        self.assertIsNone(manager.next_round_at)
+        if pending_task:
+            await asyncio.sleep(0)
+            self.assertTrue(pending_task.done())
+
+        if manager._round_task and not manager._round_task.done():
+            manager._round_task.cancel()
+        if manager._next_round_task and not manager._next_round_task.done():
+            manager._next_round_task.cancel()

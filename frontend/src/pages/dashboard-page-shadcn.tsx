@@ -368,6 +368,24 @@ function BotModeratorDialog({
   )
 }
 
+function formatQuizDuration(seconds: number) {
+  const safe = Math.max(0, seconds)
+  const mins = Math.floor(safe / 60)
+  const secs = safe % 60
+  return `${mins}:${secs.toString().padStart(2, "0")}`
+}
+
+function quizStatusLabel(quiz: DashboardPayload["quiz"]) {
+  if (quiz.paused) return "Пауза"
+  if (quiz.is_active) return `Раунд · ${formatQuizDuration(quiz.seconds_left)}`
+  if (quiz.passive_mode && quiz.passive_waiting_for_live) return "Ожидание эфира"
+  if (quiz.passive_mode && quiz.passive_result_seconds_left > 0) return `Итог раунда · ${quiz.passive_result_seconds_left} с`
+  if (quiz.passive_mode && quiz.auto_rounds_stopped) return "Пассивный режим остановлен"
+  if (quiz.next_round_in > 0) return `Ожидание · ${formatQuizDuration(quiz.next_round_in)}`
+  if (quiz.passive_mode) return "Пассивный режим"
+  return "Ожидание раунда"
+}
+
 export function QuizPage() {
   const { data, isLoading, error, refetch } = useJsonQuery<DashboardPayload>("/api/app/dashboard")
   const [notice, setNotice] = useState<ToastNotice | null>(null)
@@ -385,6 +403,13 @@ export function QuizPage() {
   useEffect(() => {
     if (data) document.title = `${data.user.login} — викторина`
   }, [data])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void refetch()
+    }, 2000)
+    return () => window.clearInterval(timer)
+  }, [refetch])
 
   const activeConfigLabel = useMemo(() => {
     if (!data) return "Источник не выбран"
@@ -519,6 +544,23 @@ export function QuizPage() {
     })
   }
 
+  async function startQuizRound() {
+    await withAction("quiz-start", async () => {
+      const result = await requestJson<MutationResult>("/api/app/quiz/start", { method: "POST" })
+      await refetch()
+      setNotice({ type: "success", title: "Раунд запущен", text: result.message ?? "Новый раунд начался." })
+    })
+  }
+
+  async function stopQuiz() {
+    if (!window.confirm("Остановить викторину и сбросить очки текущей сессии?")) return
+    await withAction("quiz-stop", async () => {
+      const result = await requestJson<MutationResult>("/api/app/quiz/stop", { method: "POST" })
+      await refetch()
+      setNotice({ type: "success", title: "Викторина остановлена", text: result.message ?? "Игра остановлена." })
+    })
+  }
+
   async function finishSeason(seasonId?: number) {
     if (!window.confirm("Завершить текущий сезон и заморозить топ?")) return
     await withAction("season-finish", async () => {
@@ -557,9 +599,50 @@ export function QuizPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatusCard icon={Radio} label="Чат" value={data.status.chat_connected ? "Подключён" : "Не подключён"} tone={data.status.chat_connected ? "success" : "destructive"} />
         <StatusCard icon={ShieldCheck} label="Модерация" value={data.status.bot_is_moderator ? data.status.bot_status_online_label : data.status.bot_status_offline_label} tone={data.status.bot_is_moderator ? "success" : "warning"} />
-        <StatusCard icon={Gauge} label="Режим" value={data.settings.turbo_mode ? "Турбо" : "Обычный"} tone={data.settings.turbo_mode ? "success" : "default"} />
+        <StatusCard icon={Gauge} label="Режим" value={data.settings.turbo_mode ? "Турбо" : data.settings.quiz_passive_mode ? "Пассивный" : "Обычный"} tone={data.settings.turbo_mode || data.settings.quiz_passive_mode ? "success" : "default"} />
         <StatusCard icon={FileJson} label="Вопросы" value={activeConfigLabel} tone="default" />
       </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <PlayCircle className="size-5" />
+                Состояние игры
+              </CardTitle>
+              <CardDescription>Живой статус раунда, ожидания и overlay. Обновляется каждые 2 секунды.</CardDescription>
+            </div>
+            <Badge variant={data.quiz.is_active ? "success" : "outline"}>{quizStatusLabel(data.quiz)}</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 rounded-xl border bg-muted/20 p-4 text-sm md:grid-cols-2">
+            <div>
+              <div className="text-muted-foreground">Категория</div>
+              <div className="font-medium">{data.quiz.category || "—"}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">Подсказка</div>
+              <div className="font-medium">{data.quiz.hint || "—"}</div>
+            </div>
+            <div className="md:col-span-2">
+              <div className="text-muted-foreground">Слово</div>
+              <div className="font-mono font-medium">{data.quiz.masked_answer || "—"}</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" onClick={() => void startQuizRound()} disabled={actionBusy !== null || data.quiz.is_active}>
+              {actionBusy === "quiz-start" ? <Loader2 className="size-4 animate-spin" /> : <PlayCircle className="size-4" />}
+              Запустить раунд
+            </Button>
+            <Button type="button" variant="destructive" onClick={() => void stopQuiz()} disabled={actionBusy !== null}>
+              {actionBusy === "quiz-stop" ? <Loader2 className="size-4 animate-spin" /> : <StopCircle className="size-4" />}
+              Остановить игру
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {data.status.chat_status_text ? (
         <Alert variant="warning">
