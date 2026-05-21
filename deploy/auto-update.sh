@@ -7,26 +7,30 @@ LOG_PREFIX="[twitch-guess-game-auto-update]"
 
 cd "$REPO_DIR"
 
+git_repo() {
+  git -c safe.directory="$REPO_DIR" "$@"
+}
+
 echo "$LOG_PREFIX checking origin/main"
 
-if ! git diff --quiet || ! git diff --cached --quiet; then
+if ! git_repo diff --quiet || ! git_repo diff --cached --quiet; then
   echo "$LOG_PREFIX tracked local changes found; skipping update"
-  git status --short
+  git_repo status --short
   exit 0
 fi
 
-before="$(git rev-parse HEAD)"
-git fetch origin main
-remote="$(git rev-parse origin/main)"
+before="$(git_repo rev-parse HEAD)"
+git_repo fetch origin main
+remote="$(git_repo rev-parse origin/main)"
 
 if [[ "$before" == "$remote" ]]; then
   echo "$LOG_PREFIX already up to date at $before"
   exit 0
 fi
 
-git merge --ff-only origin/main
-after="$(git rev-parse HEAD)"
-changed_files="$(git diff --name-only "$before" "$after")"
+git_repo merge --ff-only origin/main
+after="$(git_repo rev-parse HEAD)"
+changed_files="$(git_repo diff --name-only "$before" "$after")"
 
 echo "$LOG_PREFIX updated $before -> $after"
 
