@@ -537,6 +537,315 @@ def _find_recent_error(recent_errors: list[dict[str, Any]], key: str, *, within_
     return None
 
 
+def _status_from_age(age_seconds: float, *, warn_after: float = 5.0, error_after: float = 15.0) -> str:
+    if age_seconds <= warn_after:
+        return 'healthy'
+    if age_seconds <= error_after:
+        return 'warning'
+    return 'error'
+
+
+def _status_from_timing(last_ms: float, count: int, *, warn_ms: float = 900.0, error_ms: float = 2500.0) -> str:
+    if count <= 0:
+        return 'healthy'
+    if last_ms >= error_ms:
+        return 'error'
+    if last_ms >= warn_ms:
+        return 'warning'
+    return 'healthy'
+
+
+def _status_label(status: str) -> str:
+    if status == 'healthy':
+        return 'Работает'
+    if status == 'warning':
+        return 'Нужен контроль'
+    return 'Сбой'
+
+
+def _worst_status(*statuses: str) -> str:
+    if any(status == 'error' for status in statuses):
+        return 'error'
+    if any(status == 'warning' for status in statuses):
+        return 'warning'
+    return 'healthy'
+
+
+def _check_history(snapshot: dict[str, Any], key: str) -> list[str]:
+    history = (snapshot.get('check_history') or {}).get(key) or []
+    return [str(item) for item in history if str(item) in {'up', 'warn', 'down'}]
+
+
+def _counter_value(snapshot: dict[str, Any], key: str) -> int:
+    return int((snapshot.get('counters') or {}).get(key) or 0)
+
+
+def _timing_value(snapshot: dict[str, Any], key: str) -> dict[str, Any]:
+    return (snapshot.get('timings') or {}).get(key) or {}
+
+
+def _build_systems_status_payload(
+    *,
+    total_channels: int,
+    active_channels: int,
+    live_channels: int,
+    chat_connected_channels: int,
+) -> dict[str, Any]:
+    snapshot = service_metrics.snapshot()
+    heartbeats = snapshot.get('heartbeats') or {}
+    recent_errors = list(snapshot.get('recent_errors') or [])
+    eventsub_stats = twitch_listener.connection_stats()
+
+    ticker_age = float((heartbeats.get('runtime_ticker') or {}).get('age_seconds') or 999999.0)
+    ticker_status = _status_from_age(ticker_age)
+
+    runtime_timing = _timing_value(snapshot, 'runtime.tick')
+    timers_timing = _timing_value(snapshot, 'timers.tick')
+    autobet_timing = _timing_value(snapshot, 'autobet.tick')
+    twitch_streams_timing = _timing_value(snapshot, 'twitch.get_live_streams')
+
+    runtime_status = _worst_status(ticker_status, _status_from_timing(float(runtime_timing.get('last_ms') or 0.0), int(runtime_timing.get('count') or 0)))
+    timers_status = _status_from_timing(float(timers_timing.get('last_ms') or 0.0), int(timers_timing.get('count') or 0))
+    autobet_status = _status_from_timing(float(autobet_timing.get('last_ms') or 0.0), int(autobet_timing.get('count') or 0))
+
+    twitch_streams_error = _find_recent_error(recent_errors, 'twitch.get_live_streams', within_seconds=300)
+    twitch_streams_stale = bool(twitch_streams_error) and 'stale cache' in str(twitch_streams_error.get('message') or '').lower()
+    twitch_streams_status = 'warning' if twitch_streams_stale else ('warning' if twitch_streams_error else _status_from_timing(float(twitch_streams_timing.get('last_ms') or 0.0), int(twitch_streams_timing.get('count') or 0)))
+
+    chat_failures = _counter_value(snapshot, 'chat.send.user_token.failures')
+    chat_skipped = _counter_value(snapshot, 'chat.send.skipped_no_user_token')
+    chat_fallbacks = _counter_value(snapshot, 'chat.send.app_token.fallbacks')
+    chat_status = 'error' if chat_failures > 40 else ('warning' if chat_failures > 5 or chat_fallbacks > 25 or chat_skipped > 10 else 'healthy')
+
+    eventsub_status = 'error' if not eventsub_stats.get('session_active') else ('warning' if chat_connected_channels < max(1, active_channels // 2) and active_channels else 'healthy')
+
+    opendota_failures = _counter_value(snapshot, 'opendota.status.failures') + _counter_value(snapshot, 'opendota.live.failures')
+    opendota_status = 'error' if opendota_failures > 20 else ('warning' if opendota_failures > 0 or _counter_value(snapshot, 'opendota.cooldowns') > 0 else 'healthy')
+
+    layers = [
+        {
+            'id': 'core',
+            'title': 'Ядро Flaunt',
+            'tagline': 'Фоновый цикл, который крутит викторину, таймеры и автоставку каждую секунду.',
+            'status': runtime_status,
+            'components': [
+                {
+                    'id': 'runtime_ticker',
+                    'label': 'Runtime ticker',
+                    'role': 'Главный 1 Hz цикл',
+                    'status': ticker_status,
+                    'status_label': f'Heartbeat {_format_seconds_brief(ticker_age)} назад',
+                    'detail': 'Держит в живом состоянии quiz runtime, timers и autobet.',
+                    'metrics': [
+                        {'label': 'Циклов', 'value': str(_counter_value(snapshot, 'runtime_ticker.loops'))},
+                        {'label': 'Uptime процесса', 'value': _format_seconds_brief(snapshot.get('uptime_seconds') or 0)},
+                    ],
+                    'history': _check_history(snapshot, 'runtime_ticker'),
+                },
+                {
+                    'id': 'runtime.tick',
+                    'label': 'Quiz runtime',
+                    'role': 'Викторина и overlay state',
+                    'status': _status_from_timing(float(runtime_timing.get('last_ms') or 0.0), int(runtime_timing.get('count') or 0)),
+                    'status_label': _status_label(_status_from_timing(float(runtime_timing.get('last_ms') or 0.0), int(runtime_timing.get('count') or 0))),
+                    'detail': f'Средний тик {float(runtime_timing.get("avg_ms") or 0.0):.1f} ms, последний {float(runtime_timing.get("last_ms") or 0.0):.1f} ms.',
+                    'metrics': [
+                        {'label': 'Успешных тиков', 'value': str(_counter_value(snapshot, 'runtime.tick.success'))},
+                        {'label': 'Сбоев', 'value': str(_counter_value(snapshot, 'runtime.tick.failures'))},
+                    ],
+                    'history': _check_history(snapshot, 'runtime.tick'),
+                },
+                {
+                    'id': 'timers.tick',
+                    'label': 'Timers runtime',
+                    'role': 'Автосообщения и команды по расписанию',
+                    'status': timers_status,
+                    'status_label': _status_label(timers_status),
+                    'detail': f'Средний тик {float(timers_timing.get("avg_ms") or 0.0):.1f} ms, пик {float(timers_timing.get("max_ms") or 0.0):.1f} ms.',
+                    'metrics': [
+                        {'label': 'Успешных тиков', 'value': str(_counter_value(snapshot, 'timers.tick.success'))},
+                        {'label': 'Сбоев', 'value': str(_counter_value(snapshot, 'timers.tick.failures'))},
+                    ],
+                    'history': _check_history(snapshot, 'timers.tick'),
+                },
+                {
+                    'id': 'autobet.tick',
+                    'label': 'AutoBet runtime',
+                    'role': 'Открытие и закрытие ставок по GSI',
+                    'status': autobet_status,
+                    'status_label': _status_label(autobet_status),
+                    'detail': f'Средний тик {float(autobet_timing.get("avg_ms") or 0.0):.1f} ms, последний {float(autobet_timing.get("last_ms") or 0.0):.1f} ms.',
+                    'metrics': [
+                        {'label': 'Успешных тиков', 'value': str(_counter_value(snapshot, 'autobet.tick.success'))},
+                        {'label': 'Сбоев', 'value': str(_counter_value(snapshot, 'autobet.tick.failures'))},
+                    ],
+                    'history': _check_history(snapshot, 'autobet.tick'),
+                },
+            ],
+        },
+        {
+            'id': 'twitch',
+            'title': 'Twitch слой',
+            'tagline': 'Подключение к чату, Helix API и исходящие сообщения бота.',
+            'status': _worst_status(eventsub_status, twitch_streams_status, chat_status),
+            'components': [
+                {
+                    'id': 'eventsub',
+                    'label': 'EventSub WebSocket',
+                    'role': 'Входящий чат и redemption события',
+                    'status': eventsub_status,
+                    'status_label': 'Сессия активна' if eventsub_stats.get('session_active') else 'Сессия не поднята',
+                    'detail': f'Подписано каналов: {int(eventsub_stats.get("subscribed_channels") or 0)}. В базе чат активен у {chat_connected_channels} из {active_channels} каналов.',
+                    'metrics': [
+                        {'label': 'Подписок EventSub', 'value': str(int(eventsub_stats.get('subscribed_channels') or 0))},
+                        {'label': 'Чат подключён', 'value': f'{chat_connected_channels}/{active_channels}'},
+                    ],
+                    'history': [],
+                },
+                {
+                    'id': 'twitch.get_live_streams',
+                    'label': 'Helix Live Streams',
+                    'role': 'Статус эфира для дашборда и автоставки',
+                    'status': twitch_streams_status,
+                    'status_label': 'Из кэша' if twitch_streams_stale else _status_label(twitch_streams_status),
+                    'detail': (
+                        f'Временный сбой {_format_seconds_brief(twitch_streams_error.get("age_seconds") or 0)} назад, работаем по кэшу.'
+                        if twitch_streams_stale
+                        else (
+                            f'Последняя ошибка {_format_seconds_brief(twitch_streams_error.get("age_seconds") or 0)} назад.'
+                            if twitch_streams_error
+                            else f'Вызовов: {_counter_value(snapshot, "twitch.get_live_streams.calls")}, cache hit: {_counter_value(snapshot, "twitch.get_live_streams.cache_hits")}.'
+                        )
+                    ),
+                    'metrics': [
+                        {'label': 'Вызовов API', 'value': str(_counter_value(snapshot, 'twitch.get_live_streams.calls'))},
+                        {'label': 'Последний ответ', 'value': f'{float(twitch_streams_timing.get("last_ms") or 0.0):.0f} ms'},
+                    ],
+                    'history': _check_history(snapshot, 'twitch.get_live_streams') if _check_history(snapshot, 'twitch.get_live_streams') else [],
+                },
+                {
+                    'id': 'chat.send',
+                    'label': 'Исходящий чат',
+                    'role': 'Ответы бота, викторина, таймеры, розыгрыши',
+                    'status': chat_status,
+                    'status_label': _status_label(chat_status),
+                    'detail': 'App token → user token fallback, если бейдж-путь не сработал.',
+                    'metrics': [
+                        {'label': 'Попыток отправки', 'value': str(_counter_value(snapshot, 'chat.send.attempts'))},
+                        {'label': 'Fallback', 'value': str(chat_fallbacks)},
+                        {'label': 'Ошибок user token', 'value': str(chat_failures)},
+                    ],
+                    'history': [],
+                },
+            ],
+        },
+        {
+            'id': 'integrations',
+            'title': 'Интеграции',
+            'tagline': 'Внешние API и игровые источники данных.',
+            'status': opendota_status,
+            'components': [
+                {
+                    'id': 'opendota',
+                    'label': 'OpenDota API',
+                    'role': 'Dota 2 матчи и live-статус для автоставки',
+                    'status': opendota_status,
+                    'status_label': _status_label(opendota_status),
+                    'detail': 'Используется, когда GSI не дал надёжный финальный результат.',
+                    'metrics': [
+                        {'label': 'Успешных status', 'value': str(_counter_value(snapshot, 'opendota.status.success'))},
+                        {'label': 'Ошибок', 'value': str(opendota_failures)},
+                        {'label': 'Cooldown', 'value': str(_counter_value(snapshot, 'opendota.cooldowns'))},
+                    ],
+                    'history': [],
+                },
+                {
+                    'id': 'gsi',
+                    'label': 'Game State Integration',
+                    'role': 'Dota 2 и CS2 события от клиента игры',
+                    'status': 'healthy',
+                    'status_label': 'Приём активен',
+                    'detail': 'Эндпоинты /api/dota/gsi/{token} и /api/cs2/gsi/{token} на стороне Flaunt.',
+                    'metrics': [
+                        {'label': 'Протокол', 'value': 'HTTP POST'},
+                        {'label': 'Игры', 'value': 'Dota 2, CS2'},
+                    ],
+                    'history': [],
+                },
+            ],
+        },
+        {
+            'id': 'delivery',
+            'title': 'Доставка интерфейсов',
+            'tagline': 'Кабинет стримера и OBS overlay для зрителей.',
+            'status': 'healthy',
+            'components': [
+                {
+                    'id': 'cabinet',
+                    'label': 'Кабинет Flaunt',
+                    'role': 'React SPA /app/*',
+                    'status': 'healthy',
+                    'status_label': 'Раздаётся приложением',
+                    'detail': 'Статика из frontend/dist через FastAPI.',
+                    'metrics': [
+                        {'label': 'Стартов приложения', 'value': str(_counter_value(snapshot, 'app.starts'))},
+                    ],
+                    'history': [],
+                },
+                {
+                    'id': 'overlay',
+                    'label': 'Quiz overlay',
+                    'role': 'Browser Source для OBS',
+                    'status': 'healthy',
+                    'status_label': 'Jinja + overlay/app.js',
+                    'detail': 'Отдельный слой викторины, не зависит от SPA-сборки.',
+                    'metrics': [
+                        {'label': 'Маршрут', 'value': '/overlay/{slug}'},
+                    ],
+                    'history': [],
+                },
+            ],
+        },
+    ]
+
+    layer_statuses = [str(layer.get('status') or 'healthy') for layer in layers]
+    global_status = _worst_status(*layer_statuses)
+    if recent_errors and global_status == 'healthy':
+        global_status = 'warning'
+    if len(recent_errors) > 8:
+        global_status = 'error'
+
+    global_label = (
+        'Все системы работают'
+        if global_status == 'healthy'
+        else ('Частичная деградация' if global_status == 'warning' else 'Есть критические сбои')
+    )
+
+    return {
+        'summary': {
+            'status': global_status,
+            'label': global_label,
+            'uptime_label': _format_seconds_brief(snapshot.get('uptime_seconds') or 0),
+            'updated_at': datetime.now().strftime('%d.%m.%Y %H:%M:%S'),
+        },
+        'fleet': {
+            'total_channels': total_channels,
+            'active_channels': active_channels,
+            'live_channels': live_channels,
+            'chat_connected_channels': chat_connected_channels,
+        },
+        'layers': layers,
+        'incidents': [
+            {
+                'key': str(item.get('key') or ''),
+                'message': str(item.get('message') or ''),
+                'age_label': _format_seconds_brief(item.get('age_seconds') or 0),
+            }
+            for item in recent_errors[:8]
+        ],
+    }
+
+
 def _build_service_metrics_payload() -> dict[str, Any]:
     snapshot = service_metrics.snapshot()
     heartbeats = snapshot.get('heartbeats') or {}
@@ -962,6 +1271,12 @@ async def _build_stats_context() -> dict[str, Any]:
         'recent_channels': recent_channels[:12],
         'stats_updated_at': now.strftime('%d.%m.%Y %H:%M'),
         'service_metrics': _build_service_metrics_payload(),
+        'systems_status': _build_systems_status_payload(
+            total_channels=len(filtered_users),
+            active_channels=len(active_users),
+            live_channels=len(live_streams),
+            chat_connected_channels=connected_chat_count,
+        ),
     }
 
 

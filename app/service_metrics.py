@@ -7,6 +7,7 @@ from typing import Any
 class ServiceMetrics:
     def __init__(self) -> None:
         self._recent_errors_limit = 25
+        self._check_history_limit = 48
         self._reset()
 
     def _reset(self) -> None:
@@ -17,6 +18,7 @@ class ServiceMetrics:
         self._timings: dict[str, dict[str, float]] = {}
         self._recent_errors: deque[dict[str, Any]] = deque(maxlen=self._recent_errors_limit)
         self._heartbeats: dict[str, float] = {}
+        self._check_history: dict[str, deque[str]] = {}
 
     def reset(self) -> None:
         with self._lock:
@@ -26,6 +28,21 @@ class ServiceMetrics:
             self._timings.clear()
             self._recent_errors.clear()
             self._heartbeats.clear()
+            self._check_history.clear()
+
+    def record_check(self, key: str, state: str) -> None:
+        normalized_key = str(key or '').strip()
+        if not normalized_key:
+            return
+        normalized_state = str(state or '').strip().lower()
+        if normalized_state not in {'up', 'warn', 'down'}:
+            normalized_state = 'down'
+        with self._lock:
+            history = self._check_history.get(normalized_key)
+            if history is None:
+                history = deque(maxlen=self._check_history_limit)
+                self._check_history[normalized_key] = history
+            history.append(normalized_state)
 
     def increment(self, key: str, amount: int = 1) -> None:
         normalized_key = str(key or '').strip()
@@ -102,6 +119,7 @@ class ServiceMetrics:
                 }
                 for key, value in self._heartbeats.items()
             }
+            check_history = {key: list(history) for key, history in self._check_history.items()}
 
         return {
             'started_at': self._started_at,
@@ -112,6 +130,7 @@ class ServiceMetrics:
             'timings': timings,
             'recent_errors': recent_errors,
             'heartbeats': heartbeats,
+            'check_history': check_history,
         }
 
 

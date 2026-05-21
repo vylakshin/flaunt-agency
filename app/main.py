@@ -71,10 +71,15 @@ async def _run_runtime_ticker() -> None:
                 except Exception as exc:
                     service_metrics.increment(f'{job_name}.failures')
                     service_metrics.record_error(job_name, str(exc))
+                    service_metrics.record_check(job_name, 'down')
                     raise
                 else:
+                    duration_seconds = asyncio.get_running_loop().time() - started_at
                     service_metrics.increment(f'{job_name}.success')
-                    service_metrics.observe_duration(job_name, asyncio.get_running_loop().time() - started_at)
+                    service_metrics.observe_duration(job_name, duration_seconds)
+                    check_state = 'warn' if duration_seconds >= 1.5 else 'up'
+                    service_metrics.record_check(job_name, check_state)
+            service_metrics.record_check('runtime_ticker', 'up')
     except asyncio.CancelledError:
         return
 

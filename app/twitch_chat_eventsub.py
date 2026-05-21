@@ -433,6 +433,12 @@ class TwitchChatListener:
             and broadcaster_id in self._subscribed_broadcaster_ids
         )
 
+    def connection_stats(self) -> dict[str, int | bool]:
+        return {
+            'session_active': bool(self.session_id),
+            'subscribed_channels': len(self._subscribed_broadcaster_ids),
+        }
+
     async def _bot_is_allowed_to_operate(self, owner: dict[str, Any], broadcaster_id: str) -> bool:
         if not owner or not owner.get('access_token'):
             return False

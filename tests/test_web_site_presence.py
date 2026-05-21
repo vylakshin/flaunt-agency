@@ -352,6 +352,11 @@ class StatsContextTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(context["stats_cards"][0]["label"], "Кастомных команд")
         self.assertEqual(len(context["recent_channels"]), 2)
+        systems_status = context["systems_status"]
+        self.assertIn("summary", systems_status)
+        self.assertIn("fleet", systems_status)
+        self.assertGreaterEqual(len(systems_status["layers"]), 3)
+        self.assertEqual(systems_status["fleet"]["active_channels"], 2)
 class QuizUploadRouteTests(unittest.IsolatedAsyncioTestCase):
     async def test_upload_route_returns_json_error_for_unexpected_failures(self) -> None:
         upload = UploadFile(filename="quiz.json", file=BytesIO(b"[]"))

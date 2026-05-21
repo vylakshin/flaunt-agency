@@ -1,19 +1,20 @@
-import { CheckCircle2, AlertTriangle, XCircle } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Radio, Server, Trophy, XCircle, type LucideIcon } from "lucide-react"
 import type { ReactNode } from "react"
 
 import { BrandLogo } from "@/components/app/brand-logo"
 import { cn } from "@/lib/utils"
+import type { StatsPayload } from "@/types/app"
 
-export type StatusLevel = "healthy" | "warning" | "error"
-export type StatusBarState = "up" | "down" | "pending" | "maintenance"
+export type StatusLevel = StatsPayload["systems_status"]["summary"]["status"]
+export type StatusBarState = "up" | "warn" | "down"
 
-export type StatusMonitor = {
-  id: string
-  label: string
-  uptimePercent: number
-  status: StatusLevel
-  bars: StatusBarState[]
-  windowLabel?: string
+type SystemsStatus = StatsPayload["systems_status"]
+
+const layerIcons: Record<string, LucideIcon> = {
+  core: Server,
+  twitch: Radio,
+  integrations: Trophy,
+  delivery: CheckCircle2,
 }
 
 export function StatusBoard({ children, className }: { children: ReactNode; className?: string }) {
@@ -23,110 +24,200 @@ export function StatusBoard({ children, className }: { children: ReactNode; clas
 export function StatusBoardHeader({ updatedAt }: { updatedAt: string }) {
   return (
     <header className="status-board-header">
-      <BrandLogo subtitle="Healthcheck" className="[&_.brand-mark]:rounded-xl" />
-      <div className="status-board-title font-display">FLAUNT — HEALTHCHECK</div>
-      <div className="text-xs text-[var(--status-muted)]">Обновлено {updatedAt}</div>
+      <BrandLogo subtitle="Системы" className="[&_.brand-mark]:rounded-xl" />
+      <div>
+        <div className="status-board-title font-display">Карта систем Flaunt</div>
+        <div className="text-xs text-[var(--status-muted)]">Живые метрики процесса, Twitch, продуктов и интеграций · {updatedAt}</div>
+      </div>
     </header>
   )
 }
 
-export function StatusGlobalBanner({
-  status,
-  label,
-  uptimeLabel,
-}: {
-  status: StatusLevel
-  label: string
-  uptimeLabel: string
-}) {
-  const Icon = status === "healthy" ? CheckCircle2 : status === "warning" ? AlertTriangle : XCircle
-  const tone = status === "healthy" ? "status-banner-ok" : status === "warning" ? "status-banner-warn" : "status-banner-error"
+export function StatusGlobalBanner({ summary }: { summary: SystemsStatus["summary"] }) {
+  const Icon = summary.status === "healthy" ? CheckCircle2 : summary.status === "warning" ? AlertTriangle : XCircle
+  const tone =
+    summary.status === "healthy" ? "status-banner-ok" : summary.status === "warning" ? "status-banner-warn" : "status-banner-error"
 
   return (
     <div className={cn("status-banner", tone)}>
       <Icon className="size-5 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1">
-        <div className="font-display text-base font-semibold tracking-tight">{label}</div>
-        <div className="text-xs text-[var(--status-muted)]">Uptime {uptimeLabel}</div>
+        <div className="font-display text-base font-semibold tracking-tight">{summary.label}</div>
+        <div className="text-xs text-[var(--status-muted)]">Uptime процесса {summary.uptime_label}</div>
       </div>
     </div>
   )
 }
 
-export function StatusSection({ title, monitors }: { title: string; monitors: StatusMonitor[] }) {
-  if (!monitors.length) return null
+export function StatusArchitectureMap() {
+  return (
+    <div className="status-architecture" aria-label="Схема систем Flaunt">
+      <div className="status-arch-node status-arch-node-input">
+        <span className="status-arch-kicker">Вход</span>
+        <strong>Twitch</strong>
+        <span>EventSub · Helix · Chat</span>
+      </div>
+      <div className="status-arch-arrow" aria-hidden />
+      <div className="status-arch-node status-arch-node-core">
+        <span className="status-arch-kicker">Ядро</span>
+        <strong>Runtime ticker</strong>
+        <span>1 Hz control loop</span>
+      </div>
+      <div className="status-arch-arrow" aria-hidden />
+      <div className="status-arch-products">
+        <div className="status-arch-node">
+          <strong>Quiz</strong>
+          <span>overlay + раунды</span>
+        </div>
+        <div className="status-arch-node">
+          <strong>Timers</strong>
+          <span>автосообщения</span>
+        </div>
+        <div className="status-arch-node">
+          <strong>AutoBet</strong>
+          <span>GSI + OpenDota</span>
+        </div>
+      </div>
+      <div className="status-arch-arrow status-arch-arrow-down" aria-hidden />
+      <div className="status-arch-node status-arch-node-output">
+        <span className="status-arch-kicker">Выход</span>
+        <strong>Кабинет + Overlay</strong>
+        <span>стример и OBS</span>
+      </div>
+    </div>
+  )
+}
+
+export function StatusFleetPanel({ fleet }: { fleet: SystemsStatus["fleet"] }) {
+  const items = [
+    { label: "Каналов в базе", value: fleet.total_channels },
+    { label: "С активным ботом", value: fleet.active_channels },
+    { label: "Сейчас в эфире", value: fleet.live_channels },
+    { label: "Чат подключён", value: fleet.chat_connected_channels },
+  ]
 
   return (
-    <section className="status-section">
-      <h2 className="status-section-title">{title}</h2>
-      <div className="status-section-panel">
-        {monitors.map((monitor) => (
-          <StatusMonitorRow key={monitor.id} monitor={monitor} />
+    <div className="status-fleet">
+      {items.map((item) => (
+        <div key={item.label} className="status-fleet-item">
+          <div className="status-fleet-value">{item.value}</div>
+          <div className="status-fleet-label">{item.label}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function StatusLayerSection({ layer }: { layer: SystemsStatus["layers"][number] }) {
+  const Icon = layerIcons[layer.id] ?? Server
+
+  return (
+    <section className="status-layer">
+      <div className="status-layer-head">
+        <div className="status-layer-icon">
+          <Icon className="size-5" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="status-layer-title">{layer.title}</h2>
+            <StatusPill status={layer.status} label={statusText(layer.status)} />
+          </div>
+          <p className="status-layer-tagline">{layer.tagline}</p>
+        </div>
+      </div>
+
+      <div className="status-components">
+        {layer.components.map((component) => (
+          <StatusComponentCard key={component.id} component={component} />
         ))}
       </div>
     </section>
   )
 }
 
-export function StatusMonitorRow({ monitor }: { monitor: StatusMonitor }) {
-  const badgeClass =
-    monitor.status === "healthy"
-      ? "status-badge-up"
-      : monitor.status === "warning"
-        ? "status-badge-warn"
-        : "status-badge-down"
-
+export function StatusComponentCard({
+  component,
+}: {
+  component: SystemsStatus["layers"][number]["components"][number]
+}) {
   return (
-    <div className="status-monitor-row">
-      <div className={cn("status-uptime-badge", badgeClass)}>{formatUptime(monitor.uptimePercent)}</div>
-      <div className="status-monitor-name">{monitor.label}</div>
-      <div className="status-monitor-graph">
-        <div className="status-bars" aria-hidden>
-          {monitor.bars.map((bar, index) => (
-            <span key={`${monitor.id}-${index}`} className={cn("status-bar", `status-bar-${bar}`)} />
-          ))}
-        </div>
-        <div className="status-graph-labels">
-          <span>{monitor.windowLabel ?? "45m ago"}</span>
-          <span>now</span>
+    <article className="status-component">
+      <div className="status-component-head">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="status-component-title">{component.label}</h3>
+            <StatusPill status={component.status} label={component.status_label} />
+          </div>
+          <div className="status-component-role">{component.role}</div>
         </div>
       </div>
-    </div>
+
+      <p className="status-component-detail">{component.detail}</p>
+
+      <div className="status-component-metrics">
+        {component.metrics.map((metric) => (
+          <div key={`${component.id}-${metric.label}`} className="status-metric">
+            <div className="status-metric-label">{metric.label}</div>
+            <div className="status-metric-value">{metric.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {component.history.length ? (
+        <div className="status-component-history">
+          <div className="status-history-caption">Последние {component.history.length} проверок тикера</div>
+          <div className="status-bars" aria-hidden>
+            {component.history.map((bar, index) => (
+              <span key={`${component.id}-bar-${index}`} className={cn("status-bar", historyBarClass(bar))} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </article>
   )
 }
 
-export function statusToPercent(status: StatusLevel): number {
-  if (status === "healthy") return 99.86
-  if (status === "warning") return 98.42
-  return 94.12
+export function StatusIncidents({ incidents }: { incidents: SystemsStatus["incidents"] }) {
+  if (!incidents.length) return null
+
+  return (
+    <section className="status-layer">
+      <div className="status-layer-head">
+        <div className="status-layer-icon status-layer-icon-warn">
+          <AlertTriangle className="size-5" />
+        </div>
+        <div>
+          <h2 className="status-layer-title">Инциденты</h2>
+          <p className="status-layer-tagline">Свежие ошибки интеграций и фоновых задач.</p>
+        </div>
+      </div>
+      <div className="status-incidents">
+        {incidents.map((item, index) => (
+          <div key={`${item.key}-${index}`} className="status-incident">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium">{item.key}</span>
+              <span className="status-incident-age">{item.age_label} назад</span>
+            </div>
+            <div className="status-incident-message">{item.message}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
 }
 
-export function buildStatusBars(status: StatusLevel, count = 56): StatusBarState[] {
-  const bars: StatusBarState[] = Array.from({ length: count }, () => "up")
-  if (status === "warning") {
-    for (let index = count - 4; index < count - 1; index += 1) bars[index] = "pending"
-    bars[count - 1] = "pending"
-  }
-  if (status === "error") {
-    for (let index = count - 10; index < count - 3; index += 1) bars[index] = "down"
-    for (let index = count - 3; index < count; index += 1) bars[index] = "down"
-  }
-  return bars
+function StatusPill({ status, label }: { status: StatusLevel; label: string }) {
+  return <span className={cn("status-pill", `status-pill-${status}`)}>{label}</span>
 }
 
-export function operationStatus(lastMs: number, count: number): StatusLevel {
-  if (count <= 0) return "healthy"
-  if (lastMs >= 2500) return "error"
-  if (lastMs >= 900) return "warning"
-  return "healthy"
+function statusText(status: StatusLevel) {
+  if (status === "healthy") return "Работает"
+  if (status === "warning") return "Контроль"
+  return "Сбой"
 }
 
-export function operationUptime(lastMs: number, count: number): number {
-  if (count <= 0) return 100
-  const penalty = Math.min(8, lastMs / 180)
-  return Math.max(91, 100 - penalty)
-}
-
-export function formatUptime(value: number) {
-  return `${value.toFixed(2)}%`
+function historyBarClass(bar: StatusBarState) {
+  if (bar === "up") return "status-bar-up"
+  if (bar === "warn") return "status-bar-warn"
+  return "status-bar-down"
 }

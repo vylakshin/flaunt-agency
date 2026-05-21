@@ -472,6 +472,41 @@ export type StatsPayload = {
       age_label: string
     }>
   }
+  systems_status: {
+    summary: {
+      status: "healthy" | "warning" | "error"
+      label: string
+      uptime_label: string
+      updated_at: string
+    }
+    fleet: {
+      total_channels: number
+      active_channels: number
+      live_channels: number
+      chat_connected_channels: number
+    }
+    layers: Array<{
+      id: string
+      title: string
+      tagline: string
+      status: "healthy" | "warning" | "error"
+      components: Array<{
+        id: string
+        label: string
+        role: string
+        status: "healthy" | "warning" | "error"
+        status_label: string
+        detail: string
+        metrics: Array<{ label: string; value: string }>
+        history: Array<"up" | "warn" | "down">
+      }>
+    }>
+    incidents: Array<{
+      key: string
+      message: string
+      age_label: string
+    }>
+  }
 }
 
 export type SettingsPayload = {
