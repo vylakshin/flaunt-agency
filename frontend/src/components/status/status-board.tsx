@@ -27,7 +27,7 @@ export function StatusBoardHeader({ updatedAt }: { updatedAt: string }) {
       <BrandLogo subtitle="Системы" className="[&_.brand-mark]:rounded-xl" />
       <div>
         <div className="status-board-title font-display">Карта систем Flaunt</div>
-        <div className="text-xs text-[var(--status-muted)]">Живые метрики процесса, Twitch, продуктов и интеграций · {updatedAt}</div>
+        <div className="text-xs text-muted-foreground">Живые метрики процесса, Twitch, продуктов и интеграций · {updatedAt}</div>
       </div>
     </header>
   )
@@ -43,47 +43,31 @@ export function StatusGlobalBanner({ summary }: { summary: SystemsStatus["summar
       <Icon className="size-5 shrink-0" aria-hidden />
       <div className="min-w-0 flex-1">
         <div className="font-display text-base font-semibold tracking-tight">{summary.label}</div>
-        <div className="text-xs text-[var(--status-muted)]">Uptime процесса {summary.uptime_label}</div>
+        <div className="text-xs text-muted-foreground">Uptime процесса {summary.uptime_label}</div>
       </div>
     </div>
   )
 }
 
 export function StatusArchitectureMap() {
+  const nodes = [
+    { kicker: "Вход", title: "Twitch", detail: "EventSub · Helix · Chat" },
+    { kicker: "Ядро", title: "Runtime", detail: "1 Hz · quiz · timers · autobet" },
+    { kicker: "Продукт", title: "Quiz", detail: "overlay + раунды" },
+    { kicker: "Продукт", title: "Timers", detail: "автосообщения" },
+    { kicker: "Продукт", title: "AutoBet", detail: "GSI + OpenDota" },
+    { kicker: "Выход", title: "Кабинет", detail: "панель стримера" },
+  ]
+
   return (
     <div className="status-architecture" aria-label="Схема систем Flaunt">
-      <div className="status-arch-node status-arch-node-input">
-        <span className="status-arch-kicker">Вход</span>
-        <strong>Twitch</strong>
-        <span>EventSub · Helix · Chat</span>
-      </div>
-      <div className="status-arch-arrow" aria-hidden />
-      <div className="status-arch-node status-arch-node-core">
-        <span className="status-arch-kicker">Ядро</span>
-        <strong>Runtime ticker</strong>
-        <span>1 Hz control loop</span>
-      </div>
-      <div className="status-arch-arrow" aria-hidden />
-      <div className="status-arch-products">
-        <div className="status-arch-node">
-          <strong>Quiz</strong>
-          <span>overlay + раунды</span>
+      {nodes.map((node) => (
+        <div key={node.title} className="status-arch-node">
+          <span className="status-arch-kicker">{node.kicker}</span>
+          <strong>{node.title}</strong>
+          <span>{node.detail}</span>
         </div>
-        <div className="status-arch-node">
-          <strong>Timers</strong>
-          <span>автосообщения</span>
-        </div>
-        <div className="status-arch-node">
-          <strong>AutoBet</strong>
-          <span>GSI + OpenDota</span>
-        </div>
-      </div>
-      <div className="status-arch-arrow status-arch-arrow-down" aria-hidden />
-      <div className="status-arch-node status-arch-node-output">
-        <span className="status-arch-kicker">Выход</span>
-        <strong>Кабинет + Overlay</strong>
-        <span>стример и OBS</span>
-      </div>
+      ))}
     </div>
   )
 }

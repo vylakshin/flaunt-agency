@@ -29,8 +29,10 @@ import {
   type DashboardSettingsForm,
   type SettingsSaveState,
 } from "@/components/app/game-settings-card"
+import { PageError } from "@/components/app/page-error"
 import { PageHeader } from "@/components/app/page-header"
 import { PageShell } from "@/components/app/page-shell"
+import { StatCard } from "@/components/app/stat-card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -111,25 +113,23 @@ export function DashboardPage() {
 
   if (error || (!isLoading && !data)) {
     return (
-      <Alert variant="destructive">
-        <CircleAlert className="mb-3 size-5" />
-        <AlertTitle>Не удалось загрузить дашборд</AlertTitle>
-        <AlertDescription>{error ?? "Сервер вернул пустой ответ."}</AlertDescription>
-      </Alert>
+      <PageShell>
+        <PageError title="Не удалось загрузить дашборд" message={error ?? "Сервер вернул пустой ответ."} />
+      </PageShell>
     )
   }
 
   if (isLoading || !data) return <DashboardSkeleton />
 
   return (
-    <div className="space-y-6">
+    <PageShell>
       <PageHeader title="Дашборд" description="Быстрое подключение бота и статус аккаунта." />
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <StatusCard icon={Radio} label="Чат" value={data.status.chat_connected ? "Подключён" : "Не подключён"} tone={data.status.chat_connected ? "success" : "destructive"} />
-        <StatusCard icon={ShieldCheck} label="Модерация" value={data.status.bot_is_moderator ? data.status.bot_status_online_label : data.status.bot_status_offline_label} tone={data.status.bot_is_moderator ? "success" : "warning"} />
+        <StatCard icon={Radio} label="Чат" value={data.status.chat_connected ? "Подключён" : "Не подключён"} tone={data.status.chat_connected ? "success" : "error"} />
+        <StatCard icon={ShieldCheck} label="Модерация" value={data.status.bot_is_moderator ? data.status.bot_status_online_label : data.status.bot_status_offline_label} tone={data.status.bot_is_moderator ? "success" : "warning"} />
       </div>
 
       {data.status.chat_status_text ? (
@@ -170,7 +170,7 @@ export function DashboardPage() {
         onDeactivate={() => void deactivateChat()}
         onOpenChange={setModeratorDialogOpen}
       />
-    </div>
+    </PageShell>
   )
 }
 

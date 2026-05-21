@@ -53,8 +53,19 @@ const mainNavItems = [
 
 const adminNavItems = [
   { to: "/admin", label: "Админ", icon: ShieldCheck },
-  { to: "/stats", label: "Статус", icon: BarChart3 },
+  { to: "/stats", label: "Системы", icon: BarChart3 },
 ]
+
+const routeTitles: Record<string, string> = {
+  "/dashboard": "Дашборд",
+  "/quiz": "Викторина",
+  "/commands": "Команды",
+  "/giveaways": "Розыгрыши",
+  "/autobet": "Автоставка",
+  "/timers": "Таймеры",
+  "/admin": "Админ",
+  "/stats": "Системы",
+}
 
 export function AppFrame() {
   const { data, isLoading, setData } = useJsonQuery<AppSession>("/api/app/session")
@@ -62,7 +73,8 @@ export function AppFrame() {
   const [switchingChannelId, setSwitchingChannelId] = useState<number | null>(null)
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const isGiveaways = location.pathname.startsWith("/giveaways")
+
+  const pageTitle = routeTitles[location.pathname] ?? "Flaunt"
 
   useEffect(() => {
     setMobileOpen(false)
@@ -86,14 +98,14 @@ export function AppFrame() {
   return (
     <ThemeProvider>
       <SidebarProvider>
-        <Sidebar className={cn(collapsed ? "lg:w-[5.25rem]" : "lg:w-[17.5rem]", !mobileOpen && "max-lg:-translate-x-full max-lg:fixed")}>
+        <Sidebar className={cn(collapsed ? "lg:w-[4.5rem]" : "lg:w-[15.5rem]", !mobileOpen && "max-lg:-translate-x-full max-lg:fixed")}>
           <div className="flex h-full flex-col">
             <SidebarHeader>
               <div className={cn("flex items-center", collapsed ? "justify-center" : "justify-between gap-2")}>
                 <BrandLogo compact={collapsed} />
                 <button
                   type="button"
-                  className="hidden rounded-lg border border-border/60 p-2 text-muted-foreground transition hover:bg-accent lg:inline-flex"
+                  className="hidden rounded-lg border border-border p-2 text-muted-foreground transition hover:bg-accent lg:inline-flex"
                   onClick={() => setCollapsed((v) => !v)}
                   aria-label={collapsed ? "Развернуть меню" : "Свернуть меню"}
                 >
@@ -102,9 +114,9 @@ export function AppFrame() {
               </div>
             </SidebarHeader>
 
-            <SidebarContent className={collapsed ? "overflow-visible px-1" : undefined}>
+            <SidebarContent className={collapsed ? "overflow-visible px-1.5" : undefined}>
               <SidebarGroup>
-                {!collapsed ? <SidebarGroupLabel>Меню</SidebarGroupLabel> : null}
+                {!collapsed ? <SidebarGroupLabel>Продукт</SidebarGroupLabel> : null}
                 <SidebarMenu>
                   {mainNavItems.map((item) => (
                     <NavItem key={item.to} collapsed={collapsed} item={item} />
@@ -114,7 +126,7 @@ export function AppFrame() {
 
               {data?.is_admin ? (
                 <SidebarGroup>
-                  {!collapsed ? <SidebarGroupLabel>Админ</SidebarGroupLabel> : null}
+                  {!collapsed ? <SidebarGroupLabel>Служебное</SidebarGroupLabel> : null}
                   <SidebarMenu>
                     {adminNavItems.map((item) => (
                       <NavItem key={item.to} collapsed={collapsed} item={item} />
@@ -126,7 +138,7 @@ export function AppFrame() {
 
             <SidebarFooter>
               {isLoading || !data ? (
-                <Skeleton className="h-14 w-full rounded-xl" />
+                <Skeleton className="h-12 w-full rounded-lg" />
               ) : (
                 <ChannelSwitcher
                   collapsed={collapsed}
@@ -142,41 +154,34 @@ export function AppFrame() {
         {mobileOpen ? (
           <button
             type="button"
-            className="fixed inset-0 z-30 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-30 bg-black/60 lg:hidden"
             aria-label="Закрыть меню"
             onClick={() => setMobileOpen(false)}
           />
         ) : null}
 
-        <div className={cn("flex min-h-screen flex-1 flex-col", collapsed ? "lg:pl-[5.25rem]" : "lg:pl-[17.5rem]")}>
-          <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-border/50 bg-background/75 px-4 py-3 backdrop-blur-xl lg:px-8">
-            <button
-              type="button"
-              className="rounded-xl border border-border/70 p-2.5 text-muted-foreground lg:hidden"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Открыть меню"
-            >
-              <PanelLeft className="size-5" />
-            </button>
-            <div className="hidden text-sm text-muted-foreground lg:block">
-              {data?.active_channel.display_name || data?.active_channel.login || "Канал"}
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              {data?.is_admin ? (
-                <Link
-                  to="/admin"
-                  className="hidden rounded-xl border border-border/70 px-3 py-2 text-xs font-semibold text-muted-foreground transition hover:text-foreground sm:inline-flex"
-                >
-                  Админ
-                </Link>
-              ) : null}
+        <div className={cn("flex min-h-screen flex-1 flex-col", collapsed ? "lg:pl-[4.5rem]" : "lg:pl-[15.5rem]")}>
+          <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/90 px-4 backdrop-blur-md lg:px-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <button
+                type="button"
+                className="rounded-lg border border-border p-2 text-muted-foreground lg:hidden"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Открыть меню"
+              >
+                <PanelLeft className="size-5" />
+              </button>
+              <div className="min-w-0">
+                <div className="truncate font-display text-sm font-semibold">{pageTitle}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {data?.active_channel.display_name || data?.active_channel.login || "…"}
+                </div>
+              </div>
             </div>
           </header>
 
-          <main className={cn("flex-1 px-4 py-6 lg:px-8 lg:py-8", isGiveaways && "px-3 lg:px-5")}>
-            <div className={cn(isGiveaways ? "mx-auto w-full max-w-[90rem]" : "mx-auto w-full max-w-7xl")}>
-              <Outlet key={data?.active_channel.id ?? "loading"} />
-            </div>
+          <main className="flex-1 px-4 py-6 lg:px-6 lg:py-8">
+            <Outlet key={data?.active_channel.id ?? "loading"} />
           </main>
         </div>
       </SidebarProvider>
@@ -198,10 +203,10 @@ function NavItem({
         to={item.to}
         title={collapsed ? item.label : undefined}
         className={({ isActive }) =>
-          cn(sidebarMenuButtonVariants({ isActive }), collapsed && "justify-center px-0 pl-0", !collapsed && "pl-4")
+          cn(sidebarMenuButtonVariants({ isActive }), collapsed && "justify-center px-2", !collapsed && "pl-3")
         }
       >
-        <Icon className="size-4 shrink-0" />
+        <Icon className="size-[18px] shrink-0 opacity-90" />
         {!collapsed ? <span>{item.label}</span> : null}
       </NavLink>
     </SidebarMenuItem>
@@ -228,7 +233,7 @@ function ChannelSwitcher({
         <button
           type="button"
           className={cn(
-            "flex w-full items-center gap-3 rounded-xl border border-border/60 bg-card/50 p-2.5 text-left transition hover:border-primary/35 hover:bg-accent/60",
+            "flex w-full items-center gap-3 rounded-lg border border-border bg-card p-2 text-left transition hover:bg-accent",
             collapsed && "justify-center p-2"
           )}
         >
@@ -236,8 +241,8 @@ function ChannelSwitcher({
           {!collapsed ? (
             <>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">{active.display_name || active.login}</span>
-                <span className="block truncate text-xs text-muted-foreground">Сменить канал</span>
+                <span className="block truncate text-sm font-medium">{active.display_name || active.login}</span>
+                <span className="block truncate text-xs text-muted-foreground">Канал</span>
               </span>
               {switchingChannelId ? (
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -254,42 +259,42 @@ function ChannelSwitcher({
           side="top"
           align={collapsed ? "center" : "start"}
           sideOffset={8}
-          className="z-50 w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-border/80 bg-popover/95 p-1.5 shadow-2xl backdrop-blur-xl"
+          className="z-50 w-[min(18rem,calc(100vw-1.5rem))] rounded-xl border border-border bg-popover p-1 shadow-lg"
         >
-          <p className="px-3 py-2 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Каналы</p>
+          <p className="px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Каналы</p>
           {data.channels.map((channel) => (
             <DropdownMenu.Item asChild key={channel.id}>
               <button
                 type="button"
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm outline-none hover:bg-accent disabled:opacity-60"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm outline-none hover:bg-accent disabled:opacity-60"
                 onClick={() => onSwitch(channel.id)}
                 disabled={switchingChannelId !== null}
               >
                 <ChannelAvatar label={channel.display_name || channel.login} src={channel.profile_image_url} small />
-                <span className="min-w-0 flex-1 truncate font-medium">{channel.display_name || channel.login}</span>
+                <span className="min-w-0 flex-1 truncate">{channel.display_name || channel.login}</span>
                 {channel.role === "owner" ? <Badge variant="brand">Я</Badge> : null}
                 {channel.is_active ? <Check className="size-4 text-primary" /> : null}
               </button>
             </DropdownMenu.Item>
           ))}
-          <div className="my-1 h-px bg-border/60" />
+          <div className="my-1 h-px bg-border" />
           <DropdownMenu.Item asChild>
-            <button type="button" onClick={toggleTheme} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent">
+            <button type="button" onClick={toggleTheme} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm hover:bg-accent">
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
               {theme === "dark" ? "Светлая тема" : "Тёмная тема"}
             </button>
           </DropdownMenu.Item>
           {data.is_admin ? (
             <DropdownMenu.Item asChild>
-              <Link to="/admin" className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent">
+              <Link to="/admin" className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm hover:bg-accent">
                 <Settings className="size-4" />
-                Настройки
+                Админ
               </Link>
             </DropdownMenu.Item>
           ) : null}
-          <div className="my-1 h-px bg-border/60" />
+          <div className="my-1 h-px bg-border" />
           <form action="/logout" method="post">
-            <button type="submit" className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm hover:bg-accent">
+            <button type="submit" className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm hover:bg-accent">
               <LogOut className="size-4" />
               Выйти
             </button>
@@ -302,12 +307,12 @@ function ChannelSwitcher({
 
 function ChannelAvatar({ label, src, small }: { label: string; src?: string; small?: boolean }) {
   const initial = (label || "U").slice(0, 1).toUpperCase()
-  const size = small ? "size-8" : "size-10"
+  const size = small ? "size-7" : "size-9"
   if (src) {
-    return <img alt="" className={cn(size, "shrink-0 rounded-full object-cover ring-2 ring-border/50")} src={src} />
+    return <img alt="" className={cn(size, "shrink-0 rounded-full object-cover ring-1 ring-border")} src={src} />
   }
   return (
-    <div className={cn("brand-mark flex shrink-0 items-center justify-center rounded-full text-sm font-bold", size)}>
+    <div className={cn("brand-mark flex shrink-0 items-center justify-center rounded-full text-xs font-bold", size)}>
       {initial}
     </div>
   )

@@ -13,8 +13,8 @@ export function BrandLogo({
     <div className={cn("flex items-center gap-3", className)}>
       <div
         className={cn(
-          "brand-mark flex shrink-0 items-center justify-center rounded-2xl font-display font-bold",
-          compact ? "size-10 text-sm" : "size-11 text-base"
+          "brand-mark flex shrink-0 items-center justify-center rounded-xl font-display font-bold",
+          compact ? "size-9 text-sm" : "size-10 text-base"
         )}
         aria-hidden
       >
@@ -22,8 +22,8 @@ export function BrandLogo({
       </div>
       {!compact ? (
         <div className="min-w-0">
-          <div className="font-display text-base font-bold tracking-tight">Flaunt</div>
-          <div className="truncate text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">{subtitle}</div>
+          <div className="font-display text-[15px] font-bold tracking-tight">Flaunt</div>
+          <div className="truncate text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{subtitle}</div>
         </div>
       ) : null}
     </div>

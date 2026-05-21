@@ -38,7 +38,7 @@ export function StatsPage() {
     return (
       <PageShell wide>
         <div className="status-board">
-          <div className="status-section-panel p-4 text-sm text-red-300">{error ?? "Не удалось загрузить карту систем."}</div>
+          <div className="panel-muted p-4 text-sm text-destructive">{error ?? "Не удалось загрузить карту систем."}</div>
         </div>
       </PageShell>
     )
@@ -47,7 +47,7 @@ export function StatsPage() {
   const systems = data.systems_status
 
   return (
-    <PageShell wide className="max-w-6xl">
+    <PageShell wide>
       <StatusBoard>
         <StatusBoardHeader updatedAt={systems.summary.updated_at} />
         <StatusGlobalBanner summary={systems.summary} />
