@@ -1,7 +1,23 @@
-﻿import { ChevronDown, Copy, Crosshair, ExternalLink, Gamepad2, Loader2, Plus, RotateCcw, Trophy, X } from "lucide-react"
+﻿import {
+  AlertTriangle,
+  ChevronDown,
+  Copy,
+  Crosshair,
+  ExternalLink,
+  Gamepad2,
+  Loader2,
+  Plus,
+  Radio,
+  RotateCcw,
+  Trophy,
+  Wifi,
+  WifiOff,
+  X,
+} from "lucide-react"
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 
 import { PageHeader } from "@/components/app/page-header"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -117,7 +133,7 @@ export function AutoBetPage() {
       } catch {
         // Keep the last good state on transient polling errors.
       }
-    }, data?.active_prediction ? 500 : 700)
+    }, data?.active_prediction ? 2000 : 3000)
     return () => window.clearInterval(timer)
   }, [busyAction, Boolean(data?.active_prediction), setData])
 
@@ -262,42 +278,72 @@ export function AutoBetPage() {
     return <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm">{error ?? "Не удалось загрузить автоставку."}</div>
   }
 
+  const lastError = data.settings.last_error?.trim() || ""
+  const dotaGsi = data.gsi.dota2
+  const cs2Gsi = data.gsi.cs2
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <PageHeader title="Автоставка" description="Ручные и автоматические ставки для Dota 2 и CS." />
+        <PageHeader
+          title="Автоставка"
+          description="Подключи игру, включи автоставку — бот откроет ставку в начале матча и закроет после финиша. Если авто не сработало, закрой вручную кнопками ниже."
+        />
         <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={Boolean(active) || isBusy} onClick={() => setManualOpen(true)}>
+          <Button type="button" variant="brand" disabled={Boolean(active) || isBusy} onClick={() => setManualOpen(true)}>
             <Plus className="size-4" />
-            Добавить ставку
+            Ручная ставка
           </Button>
         </div>
       </div>
 
       <Toast notice={notice} onClose={() => setNotice(null)} />
 
+      {lastError ? (
+        <Alert variant="warning">
+          <AlertTriangle className="size-4" />
+          <AlertTitle>Нужно внимание</AlertTitle>
+          <AlertDescription>{lastError}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <WorkflowStep
+          done={dotaGsi.connected || cs2Gsi.connected}
+          step="1"
+          title="Игра подключена"
+          description="GSI отправляет данные с ПК, где запущена Dota 2 или CS2."
+        />
+        <WorkflowStep
+          done={form.dota2_enabled || form.cs2_enabled}
+          step="2"
+          title="Автоставка включена"
+          description="Выбери игру и типы вопросов в настройках ниже."
+        />
+        <WorkflowStep
+          done={Boolean(active)}
+          step="3"
+          title="Ставка на канале"
+          description={active ? "Следи за таймером и закрой исход после матча." : "Откроется автоматически при старте матча."}
+        />
+      </section>
+
       <div className="grid gap-4 md:grid-cols-2">
-        <GameStatusCard
-          game="Dota 2"
-          autoEnabled={form.dota2_enabled}
-          customEnabled={form.dota2_custom_questions_enabled}
-          detail="Автоставка по матчу и кастомные вопросы по Dota 2."
-        />
-        <GameStatusCard
-          game="CS"
-          autoEnabled={form.cs2_enabled}
-          customEnabled={form.cs2_custom_questions_enabled}
-          detail="Автоставка по Competitive/Premier и кастомные вопросы по CS."
-        />
+        <GameLinkCard game="Dota 2" enabled={form.dota2_enabled} gsi={dotaGsi} />
+        <GameLinkCard game="CS2" enabled={form.cs2_enabled} gsi={cs2Gsi} />
       </div>
 
       <OverlaySetupCard overlayUrl={data.obs_overlay_url} />
 
-      <Card>
+      <Card className="border-primary/20">
         <CardHeader className="gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <CardTitle>Актуальная ставка на канале</CardTitle>
-            <CardDescription>{active ? "Обновляется каждые несколько секунд." : "Активной ставки сейчас нет."}</CardDescription>
+            <CardDescription>
+              {active
+                ? "Закрой исход вручную, если матч уже закончился, а ставка висит. Кнопки отправляют результат в Twitch."
+                : "Активной ставки сейчас нет — откроется при следующем подходящем матче."}
+            </CardDescription>
           </div>
           {active ? (
             <Badge variant={activeIsClosed ? "outline" : "success"}>{formatTimeLeft(activeSecondsRemaining)}</Badge>
@@ -343,18 +389,24 @@ export function AutoBetPage() {
                 <OutcomePanel outcome={secondOutcome} fallbackTitle={active.loss_outcome_title || "Ответ 2"} tone="rose" />
               </div>
 
-              <div className="grid gap-2 sm:grid-cols-3">
-                <Button type="button" disabled={isBusy} onClick={() => void resolvePrediction("win")}>
-                  <Trophy className="size-4" />
-                  {normalizeDisplayText(active.win_outcome_title || firstOutcome?.title, "Ответ 1")}
-                </Button>
-                <Button type="button" variant="destructive" disabled={isBusy} onClick={() => void resolvePrediction("loss")}>
-                  {normalizeDisplayText(active.loss_outcome_title || secondOutcome?.title, "Ответ 2")}
-                </Button>
-                <Button type="button" variant="outline" disabled={isBusy} onClick={() => void resolvePrediction("cancel")}>
-                  <RotateCcw className="size-4" />
-                  Отмена
-                </Button>
+              <div className="rounded-xl border border-border/70 bg-muted/20 p-4">
+                <div className="text-sm font-medium">Закрыть ставку вручную</div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Используй, если матч завершился, но бот не подвёл итог автоматически (часто у Dota 2 не приходит победитель, у CS2 — команда или match_id).
+                </p>
+                <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                  <Button type="button" variant="brand" disabled={isBusy || Boolean(active.sync_error)} onClick={() => void resolvePrediction("win")}>
+                    <Trophy className="size-4" />
+                    {normalizeDisplayText(active.win_outcome_title || firstOutcome?.title, "Ответ 1")}
+                  </Button>
+                  <Button type="button" variant="destructive" disabled={isBusy || Boolean(active.sync_error)} onClick={() => void resolvePrediction("loss")}>
+                    {normalizeDisplayText(active.loss_outcome_title || secondOutcome?.title, "Ответ 2")}
+                  </Button>
+                  <Button type="button" variant="outline" disabled={isBusy || Boolean(active.sync_error)} onClick={() => void resolvePrediction("cancel")}>
+                    <RotateCcw className="size-4" />
+                    Отмена
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
@@ -516,32 +568,90 @@ function Metric({ label, value }: { label: string; value: string }) {
   )
 }
 
-function GameStatusCard({
-  autoEnabled,
-  customEnabled,
-  detail,
-  game,
+function WorkflowStep({
+  done,
+  description,
+  step,
+  title,
 }: {
-  autoEnabled: boolean
-  customEnabled: boolean
-  detail: string
-  game: string
+  done: boolean
+  description: string
+  step: string
+  title: string
+}) {
+  return (
+    <div className="surface-card flex gap-4 p-4">
+      <div
+        className={
+          done
+            ? "brand-gradient flex size-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
+            : "flex size-10 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-muted text-sm font-bold text-muted-foreground"
+        }
+      >
+        {step}
+      </div>
+      <div className="min-w-0">
+        <div className="font-semibold">{title}</div>
+        <div className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</div>
+      </div>
+    </div>
+  )
+}
+
+function GameLinkCard({
+  enabled,
+  game,
+  gsi,
+}: {
+  enabled: boolean
+  game: "Dota 2" | "CS2"
+  gsi: AutoBetPayload["gsi"]["dota2"]
 }) {
   const Icon = game === "Dota 2" ? Gamepad2 : Crosshair
-  const accentClass = autoEnabled ? "bg-emerald-500/15 text-emerald-400" : "bg-amber-500/15 text-amber-300"
+  const connectionLabel = gsi.connected ? "Игра на связи" : gsi.seconds_since_last_seen < 120 ? "Нет свежих данных" : "Не подключена"
+  const phaseLabel = gsi.is_finished ? "Матч завершён" : gsi.is_live ? "Матч идёт" : gsi.phase ? gsi.phase : "Ожидание матча"
 
   return (
     <Card className="border-border/80 bg-card/80">
-      <CardContent className="flex items-start gap-4 p-4">
-        <div className={`mt-0.5 flex size-12 shrink-0 items-center justify-center rounded-2xl ${accentClass}`}>
-          <Icon className="size-5" />
+      <CardContent className="space-y-4 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Icon className="size-5" />
+            </div>
+            <div>
+              <div className="font-semibold">{game}</div>
+              <div className="text-sm text-muted-foreground">{enabled ? "Автоставка включена" : "Автоставка выключена"}</div>
+            </div>
+          </div>
+          <Badge variant={gsi.connected ? "success" : "outline"}>{connectionLabel}</Badge>
         </div>
-        <div className="min-w-0 space-y-1">
-          <div className="text-sm text-muted-foreground">{game}</div>
-          <div className="text-xl font-semibold leading-tight">{autoEnabled ? "Автоставка включена" : "Автоставка выключена"}</div>
-          <div className="text-sm text-muted-foreground">{customEnabled ? "Кастомные ставки включены" : "Кастомные ставки выключены"}</div>
-          <div className="text-xs text-muted-foreground">{detail}</div>
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded-lg border border-border/60 bg-background/50 p-3">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              {gsi.connected ? <Wifi className="size-3.5" /> : <WifiOff className="size-3.5" />}
+              GSI
+            </div>
+            <div className="mt-1 font-medium">{gsi.connected ? "Онлайн" : gsi.seconds_since_last_seen ? `${gsi.seconds_since_last_seen} с назад` : "Нет данных"}</div>
+          </div>
+          <div className="rounded-lg border border-border/60 bg-background/50 p-3">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Radio className="size-3.5" />
+              Статус
+            </div>
+            <div className="mt-1 truncate font-medium">{phaseLabel}</div>
+          </div>
         </div>
+        {gsi.match_id ? (
+          <div className="text-xs text-muted-foreground">
+            Match ID: <span className="font-mono text-foreground">{gsi.match_id}</span>
+          </div>
+        ) : null}
+        {(gsi.kills > 0 || gsi.deaths > 0 || gsi.assists > 0) && (
+          <div className="text-xs text-muted-foreground">
+            K / D / A: {gsi.kills} / {gsi.deaths} / {gsi.assists}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

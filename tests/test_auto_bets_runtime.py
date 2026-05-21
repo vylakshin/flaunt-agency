@@ -220,6 +220,62 @@ class AutoBetRuntimeFlowTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(result["opened"])
         resolve_mock.assert_awaited_once()
 
+    async def test_resolve_dota_gsi_allows_compatible_match_id_drift(self) -> None:
+        runtime = AutoBetRuntime()
+        user = {"id": 1}
+        settings = {
+            "active_prediction_id": "prediction-1",
+            "active_game_key": "dota2",
+            "win_outcome_id": "win-1",
+            "loss_outcome_id": "loss-1",
+            "last_opened_stream_signature": "dota-gsi:steam-de_mirage:kills_over:12",
+        }
+        state = {
+            "match_id": "steam-de_mirage-premier",
+            "game_state": "DOTA_GAMERULES_STATE_POST_GAME",
+            "kills": 20,
+            "deaths": 2,
+            "assists": 9,
+        }
+
+        with patch("app.auto_bets.twitch_api.end_prediction_for_user", AsyncMock(return_value={"id": "prediction-1"})):
+            with patch("app.auto_bets.clear_user_auto_bet_prediction", return_value={"active_prediction_id": ""}) as clear_mock:
+                await runtime._resolve_dota_gsi_prediction(user, settings, state)
+
+        clear_mock.assert_called_once()
+
+    async def test_tick_retries_resolve_from_cached_gsi(self) -> None:
+        runtime = AutoBetRuntime()
+        user = {"id": 1}
+        settings = {
+            "active_prediction_id": "prediction-1",
+            "active_game_key": "cs2",
+            "last_opened_stream_signature": "cs2-gsi:debug-cs2-777:win:0",
+        }
+        runtime._set_gsi_debug_state(
+            1,
+            "cs2",
+            {
+                "match_id": "debug-cs2-777",
+                "phase": "matchover",
+                "player_team": "CT",
+                "ct_score": 13,
+                "t_score": 10,
+                "kills": 18,
+                "deaths": 11,
+                "assists": 6,
+                "updated_at": __import__("time").time(),
+            },
+        )
+
+        with patch("app.auto_bets.list_auto_bet_enabled_users", return_value=[user]):
+            with patch("app.auto_bets.get_user_auto_bet_settings", return_value=settings):
+                with patch.object(runtime, "_sync_active_prediction", AsyncMock()):
+                    with patch.object(runtime, "_resolve_cs2_gsi_prediction", AsyncMock()) as resolve_mock:
+                        await runtime.tick()
+
+        resolve_mock.assert_awaited()
+
     async def test_debug_close_cs2_gsi_prediction_resolves_current_match(self) -> None:
         runtime = AutoBetRuntime()
         user = {"id": 1}

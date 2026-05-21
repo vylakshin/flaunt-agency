@@ -1894,7 +1894,7 @@ async def _build_auto_bet_payload(user: dict) -> dict[str, Any]:
         'games': state['games'],
         'active_prediction': await _get_cached_active_auto_bet_prediction(user, auto_settings, active_prediction_id),
         'history': list_user_auto_bet_history(int(user['id']), limit=5),
-        'gsi': _build_gsi_payload(auto_settings, gsi_endpoint_url),
+        'gsi': _build_gsi_payload(user, auto_settings, gsi_endpoint_url),
         'obs_overlay_url': build_autobet_overlay_url(str(user.get('overlay_slug') or '')),
         'limits': {
             'prediction_window_min_seconds': 30,
@@ -1905,7 +1905,37 @@ async def _build_auto_bet_payload(user: dict) -> dict[str, Any]:
     }
 
 
-def _build_gsi_payload(settings_row: dict[str, Any], endpoint_url: str) -> dict[str, Any]:
+def _build_game_gsi_status(user: dict[str, Any], game_key: str, settings_row: dict[str, Any], now: float) -> dict[str, Any]:
+    user_id = int(user['id'])
+    debug_state = auto_bet_runtime.get_gsi_debug_state(user_id, game_key)
+    try:
+        debug_seen_at = float(debug_state.get('updated_at') or 0)
+    except (TypeError, ValueError):
+        debug_seen_at = 0.0
+    connected = bool(debug_seen_at and now - debug_seen_at < 30)
+    if game_key == 'dota2':
+        phase = str(debug_state.get('game_state') or settings_row.get('gsi_game_state') or '')
+        finished = auto_bet_runtime._gsi_match_is_finished(debug_state) if debug_state else False
+        live = auto_bet_runtime._gsi_ready_for_prediction_open(debug_state) if debug_state else False
+    else:
+        phase = str(debug_state.get('phase') or settings_row.get('gsi_game_state') or '')
+        finished = auto_bet_runtime._cs2_match_is_finished(debug_state) if debug_state else False
+        live = auto_bet_runtime._cs2_match_is_live(debug_state) if debug_state else False
+    return {
+        'connected': connected,
+        'last_seen_at': debug_seen_at,
+        'seconds_since_last_seen': int(now - debug_seen_at) if debug_seen_at else 0,
+        'match_id': str(debug_state.get('match_id') or settings_row.get('gsi_match_id') or ''),
+        'phase': phase,
+        'is_live': live,
+        'is_finished': finished,
+        'kills': int(debug_state.get('kills') or settings_row.get('gsi_kills') or 0),
+        'deaths': int(debug_state.get('deaths') or settings_row.get('gsi_deaths') or 0),
+        'assists': int(debug_state.get('assists') or settings_row.get('gsi_assists') or 0),
+    }
+
+
+def _build_gsi_payload(user: dict[str, Any], settings_row: dict[str, Any], endpoint_url: str) -> dict[str, Any]:
     last_seen_at = float(settings_row.get('gsi_last_seen_at') or 0)
     now = time.time()
     token = str(settings_row.get('gsi_token') or '')
@@ -1936,6 +1966,8 @@ def _build_gsi_payload(settings_row: dict[str, Any], endpoint_url: str) -> dict[
         'kills': int(settings_row.get('gsi_kills') or 0),
         'deaths': int(settings_row.get('gsi_deaths') or 0),
         'assists': int(settings_row.get('gsi_assists') or 0),
+        'dota2': _build_game_gsi_status(user, 'dota2', settings_row, now),
+        'cs2': _build_game_gsi_status(user, 'cs2', settings_row, now),
     }
 
 

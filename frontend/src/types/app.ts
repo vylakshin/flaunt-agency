@@ -218,6 +218,19 @@ export type AutoBetSettings = {
   updated_at: string
 }
 
+export type GameGsiStatus = {
+  connected: boolean
+  last_seen_at: number
+  seconds_since_last_seen: number
+  match_id: string
+  phase: string
+  is_live: boolean
+  is_finished: boolean
+  kills: number
+  deaths: number
+  assists: number
+}
+
 export type AutoBetPayload = {
   title: string
   user: AppSession["user"]
@@ -289,6 +302,8 @@ export type AutoBetPayload = {
     kills: number
     deaths: number
     assists: number
+    dota2: GameGsiStatus
+    cs2: GameGsiStatus
   }
   obs_overlay_url: string
   limits: {

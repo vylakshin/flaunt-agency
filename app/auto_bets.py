@@ -327,7 +327,7 @@ class AutoBetRuntime:
             if await self._stream_online_gate_passed(user):
                 opened = await self._open_gsi_prediction(user, settings, state, now)
         elif str(settings.get('active_game_key') or '') == 'dota2' and str(settings.get('active_prediction_id') or '').strip():
-            await self._resolve_dota_gsi_prediction(user, settings, state)
+            await self._safe_resolve_dota_gsi_prediction(user, settings, state)
         return {'ok': True, 'opened': opened, 'gsi': state}
 
     async def handle_cs2_gsi_payload(self, user: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
@@ -375,7 +375,7 @@ class AutoBetRuntime:
             if await self._stream_online_gate_passed(user):
                 opened = await self._open_cs2_gsi_prediction(user, settings, state, now)
         elif str(settings.get('active_game_key') or '') == 'cs2' and str(settings.get('active_prediction_id') or '').strip():
-            await self._resolve_cs2_gsi_prediction(user, settings, state)
+            await self._safe_resolve_cs2_gsi_prediction(user, settings, state)
         return {'ok': True, 'opened': opened, 'gsi': state}
 
     async def debug_open_dota_gsi_prediction(
@@ -561,6 +561,68 @@ class AutoBetRuntime:
         resolved = not str(updated_settings.get('active_prediction_id') or '').strip()
         return {'ok': True, 'resolved': resolved, 'match_id': normalized_match_id, 'gsi': state}
 
+    async def debug_close_dota_gsi_prediction(
+        self,
+        user: dict[str, Any],
+        *,
+        match_id: str = '',
+        hero_id: int = 74,
+        hero_name: str = 'Invoker',
+        kills: int = 14,
+        deaths: int = 3,
+        assists: int = 11,
+        game_mode: str = '22',
+        lobby_type: str = '7',
+        game_time: int = 2440,
+        player_team: str = 'radiant',
+        winner_team: str = 'radiant',
+        radiant_win: bool = True,
+    ) -> dict[str, Any]:
+        user_id = int(user['id'])
+        settings = get_user_auto_bet_settings(user_id)
+        active_prediction_id = str(settings.get('active_prediction_id') or '').strip()
+        if not active_prediction_id:
+            raise RuntimeError('Сейчас нет активной Dota 2 ставки для закрытия.')
+        if str(settings.get('active_game_key') or '').strip() != 'dota2':
+            raise RuntimeError('Активная ставка относится не к Dota 2.')
+        normalized_match_id = str(match_id or self._active_dota_match_id(settings) or '').strip()
+        if not normalized_match_id:
+            raise RuntimeError('Не удалось определить match_id для закрытия Dota 2 ставки.')
+        now = time.time()
+        state = {
+            'match_id': normalized_match_id,
+            'game_state': 'DOTA_GAMERULES_STATE_POST_GAME',
+            'game_mode': str(game_mode or '22').strip(),
+            'lobby_type': str(lobby_type or '7').strip(),
+            'game_time': int(game_time or 0),
+            'hero_id': int(hero_id or 0),
+            'hero_name': self._clean_gsi_hero_name(str(hero_name or 'Invoker')),
+            'kills': int(kills or 0),
+            'deaths': int(deaths or 0),
+            'assists': int(assists or 0),
+            'player_team': str(player_team or 'radiant').strip(),
+            'winner_team': str(winner_team or 'radiant').strip(),
+            'radiant_win': bool(radiant_win),
+            'allplayers': [],
+        }
+        self._set_gsi_debug_state(user_id, 'dota2', {**state, 'updated_at': now})
+        settings = set_user_auto_bet_gsi_state(
+            user_id,
+            seen_at=now,
+            match_id=state['match_id'],
+            game_state=state['game_state'],
+            game_time=state['game_time'],
+            hero_id=state['hero_id'],
+            hero_name=state['hero_name'],
+            kills=state['kills'],
+            deaths=state['deaths'],
+            assists=state['assists'],
+        )
+        await self._resolve_dota_gsi_prediction(user, settings, state)
+        updated_settings = get_user_auto_bet_settings(user_id)
+        resolved = not str(updated_settings.get('active_prediction_id') or '').strip()
+        return {'ok': True, 'resolved': resolved, 'match_id': normalized_match_id, 'gsi': state}
+
     async def _stream_online_gate_passed(self, user: dict[str, Any]) -> bool:
         if not bool(app_settings.autobet_require_stream_online):
             return True
@@ -578,27 +640,30 @@ class AutoBetRuntime:
         user_id = int(user['id'])
         settings = get_user_auto_bet_settings(user_id)
         prediction_id = str(settings.get('active_prediction_id') or '').strip()
-        external_prediction: Optional[dict[str, Any]] = None
-        if not prediction_id:
-            external_prediction = await twitch_api.get_current_prediction_for_user(user)
-            prediction_id = str((external_prediction or {}).get('id') or '').strip()
+        twitch_prediction: Optional[dict[str, Any]] = None
+        if prediction_id:
+            twitch_prediction = await twitch_api.get_prediction_for_user(user, prediction_id=prediction_id)
+        if not twitch_prediction:
+            twitch_prediction = await twitch_api.get_current_prediction_for_user(user)
+            if twitch_prediction:
+                prediction_id = str(twitch_prediction.get('id') or '').strip() or prediction_id
         if not prediction_id:
             raise RuntimeError('Активной автоставки нет.')
 
-        normalized_result = str(result or '').strip().lower()
-        if external_prediction:
-            outcomes = external_prediction.get('outcomes') or []
-            if normalized_result == 'win' and len(outcomes) >= 1 and isinstance(outcomes[0], dict):
-                settings['win_outcome_id'] = str(outcomes[0].get('id') or '')
-                settings['win_outcome_title'] = str(outcomes[0].get('title') or 'Победа')
-            elif normalized_result == 'loss' and len(outcomes) >= 2 and isinstance(outcomes[1], dict):
-                settings['loss_outcome_id'] = str(outcomes[1].get('id') or '')
-                settings['loss_outcome_title'] = str(outcomes[1].get('title') or 'Поражение')
-            settings['active_prediction_id'] = prediction_id
-            settings['active_prediction_title'] = str(external_prediction.get('title') or '')
-            settings['active_game_key'] = 'twitch'
-            settings['active_game_name'] = 'Twitch'
+        if twitch_prediction:
+            twitch_status = str(twitch_prediction.get('status') or '').strip().upper()
+            if twitch_status in {'RESOLVED', 'CANCELED'}:
+                self._record_prediction_history(
+                    user_id,
+                    settings,
+                    twitch_prediction,
+                    status=twitch_status,
+                    winning_outcome_id=str(twitch_prediction.get('winning_outcome_id') or ''),
+                )
+                return clear_user_auto_bet_prediction(user_id)
+            settings = self._hydrate_prediction_outcome_ids(settings, twitch_prediction)
 
+        normalized_result = str(result or '').strip().lower()
         if normalized_result == 'win':
             winning_outcome_id = str(settings.get('win_outcome_id') or '').strip()
             status = 'RESOLVED'
@@ -611,12 +676,29 @@ class AutoBetRuntime:
         else:
             raise RuntimeError('Неизвестный результат автоставки.')
 
-        ended_prediction = await twitch_api.end_prediction_for_user(
-            user,
-            prediction_id=prediction_id,
-            status=status,
-            winning_outcome_id=winning_outcome_id,
-        )
+        if status == 'RESOLVED' and not winning_outcome_id:
+            raise RuntimeError('Не удалось определить исход ставки в Twitch. Обнови страницу и попробуй ещё раз.')
+
+        try:
+            ended_prediction = await twitch_api.end_prediction_for_user(
+                user,
+                prediction_id=prediction_id,
+                status=status,
+                winning_outcome_id=winning_outcome_id,
+            )
+        except RuntimeError as exc:
+            refreshed_prediction = await twitch_api.get_prediction_for_user(user, prediction_id=prediction_id)
+            refreshed_status = str((refreshed_prediction or {}).get('status') or '').strip().upper()
+            if refreshed_status in {'RESOLVED', 'CANCELED'}:
+                self._record_prediction_history(
+                    user_id,
+                    settings,
+                    refreshed_prediction or {},
+                    status=refreshed_status,
+                    winning_outcome_id=str((refreshed_prediction or {}).get('winning_outcome_id') or ''),
+                )
+                return clear_user_auto_bet_prediction(user_id)
+            raise exc
         self._record_prediction_history(user_id, settings, ended_prediction, status=status, winning_outcome_id=winning_outcome_id)
         return clear_user_auto_bet_prediction(user_id)
 
@@ -681,13 +763,49 @@ class AutoBetRuntime:
         settings = get_user_auto_bet_settings(user_id)
         if settings.get('active_prediction_id'):
             await self._sync_active_prediction(user, settings, now)
+            await self._try_resolve_active_prediction_from_cached_gsi(user, settings)
         return
+
+    async def _try_resolve_active_prediction_from_cached_gsi(
+        self,
+        user: dict[str, Any],
+        settings: dict[str, Any],
+    ) -> None:
+        user_id = int(user['id'])
+        game_key = str(settings.get('active_game_key') or '').strip().lower()
+        if game_key not in {'dota2', 'cs2'}:
+            return
+        debug_state = self.get_gsi_debug_state(user_id, game_key)
+        if not debug_state:
+            return
+        try:
+            debug_seen_at = float(debug_state.get('updated_at') or 0)
+        except (TypeError, ValueError):
+            debug_seen_at = 0.0
+        if debug_seen_at <= 0 or time.time() - debug_seen_at > 15 * 60:
+            return
+        merged_state = {
+            **debug_state,
+            'kills': int(debug_state.get('kills') or settings.get('gsi_kills') or 0),
+            'deaths': int(debug_state.get('deaths') or settings.get('gsi_deaths') or 0),
+            'assists': int(debug_state.get('assists') or settings.get('gsi_assists') or 0),
+        }
+        try:
+            if game_key == 'dota2' and self._gsi_match_is_finished(merged_state):
+                await self._resolve_dota_gsi_prediction(user, settings, merged_state)
+            elif game_key == 'cs2' and self._cs2_match_is_finished(merged_state):
+                await self._resolve_cs2_gsi_prediction(user, settings, merged_state)
+        except Exception as exc:
+            logger.warning(
+                'Auto-bet cached GSI resolve failed user=%s game=%s error=%s',
+                user.get('id'),
+                game_key,
+                exc,
+            )
 
     async def _sync_active_prediction(self, user: dict[str, Any], settings: dict[str, Any], now: float) -> None:
         prediction_id = str(settings.get('active_prediction_id') or '').strip()
         if not prediction_id:
-            return
-        if settings.get('last_error') and now - float(settings.get('last_error_at') or 0) < 600:
             return
         try:
             prediction = await twitch_api.get_prediction_for_user(user, prediction_id=prediction_id)
@@ -1204,9 +1322,28 @@ class AutoBetRuntime:
             'kills': self._int_value(player.get('kills') or 0),
             'deaths': self._int_value(player.get('deaths') or 0),
             'assists': self._int_value(player.get('assists') or 0),
-            'player_team': str(player.get('team_name') or player.get('team') or hero.get('team_name') or '').strip(),
-            'winner_team': str(map_state.get('win_team') or map_state.get('winner') or payload.get('winner') or '').strip(),
-            'radiant_win': self._optional_bool(map_state.get('radiant_win') if 'radiant_win' in map_state else payload.get('radiant_win')),
+            'player_team': str(
+                player.get('team_name')
+                or player.get('team')
+                or hero.get('team_name')
+                or hero.get('team')
+                or ''
+            ).strip(),
+            'winner_team': str(
+                map_state.get('win_team')
+                or map_state.get('winner_team')
+                or map_state.get('winner')
+                or payload.get('winner')
+                or payload.get('win_team')
+                or ''
+            ).strip(),
+            'radiant_win': self._optional_bool(
+                map_state.get('radiant_win')
+                if 'radiant_win' in map_state
+                else map_state.get('radiant_won')
+                if 'radiant_won' in map_state
+                else payload.get('radiant_win')
+            ),
             'allplayers': self._parse_gsi_allplayers(allplayers),
         }
 
@@ -1233,7 +1370,8 @@ class AutoBetRuntime:
         map_name = str(map_state.get('name') or '').strip()
         mode = str(map_state.get('mode') or '').strip().lower()
         stable_fallback_match_id = '-'.join(part for part in [player_id_steam_id, map_name, mode] if part)
-        match_id = map_state.get('matchid') or map_state.get('match_id') or stable_fallback_match_id or ''
+        numeric_match_id = str(map_state.get('matchid') or map_state.get('match_id') or '').strip()
+        match_id = numeric_match_id or stable_fallback_match_id or ''
         local_player = self._find_cs2_local_player(allplayers, local_steam_id)
         local_match_stats = local_player.get('match_stats') if isinstance(local_player.get('match_stats'), dict) else {}
         local_state = local_player.get('state') if isinstance(local_player.get('state'), dict) else {}
@@ -1277,6 +1415,83 @@ class AutoBetRuntime:
             if len(parts) >= 4:
                 return str(parts[1] or '').strip()
         return str(settings.get('gsi_match_id') or '').strip()
+
+    @staticmethod
+    def _active_dota_match_id(settings: dict[str, Any]) -> str:
+        signature = str(settings.get('last_opened_stream_signature') or '').strip()
+        if signature.startswith('dota-gsi:'):
+            parts = signature.split(':')
+            if len(parts) >= 4:
+                return str(parts[1] or '').strip()
+        return str(settings.get('gsi_match_id') or '').strip()
+
+    @staticmethod
+    def _match_ids_compatible(signature_match_id: str, state_match_id: str) -> bool:
+        signature_value = str(signature_match_id or '').strip()
+        state_value = str(state_match_id or '').strip()
+        if not signature_value or not state_value:
+            return True
+        if signature_value == state_value:
+            return True
+        if signature_value in state_value or state_value in signature_value:
+            return True
+        signature_prefix = signature_value.split('-', 1)[0]
+        if signature_prefix and signature_prefix.isdigit() is False and signature_prefix in state_value:
+            return True
+        return False
+
+    @staticmethod
+    def _hydrate_prediction_outcome_ids(settings: dict[str, Any], prediction: dict[str, Any]) -> dict[str, Any]:
+        hydrated = dict(settings)
+        outcomes = prediction.get('outcomes') or []
+        if len(outcomes) >= 1 and isinstance(outcomes[0], dict):
+            hydrated['win_outcome_id'] = str(outcomes[0].get('id') or hydrated.get('win_outcome_id') or '')
+            hydrated['win_outcome_title'] = str(outcomes[0].get('title') or hydrated.get('win_outcome_title') or 'Победа')
+        if len(outcomes) >= 2 and isinstance(outcomes[1], dict):
+            hydrated['loss_outcome_id'] = str(outcomes[1].get('id') or hydrated.get('loss_outcome_id') or '')
+            hydrated['loss_outcome_title'] = str(outcomes[1].get('title') or hydrated.get('loss_outcome_title') or 'Поражение')
+        return hydrated
+
+    async def _safe_resolve_dota_gsi_prediction(self, user: dict[str, Any], settings: dict[str, Any], state: dict[str, Any]) -> None:
+        try:
+            await self._resolve_dota_gsi_prediction(user, settings, state)
+        except Exception as exc:
+            set_user_auto_bet_error(int(user['id']), str(exc), error_at=time.time())
+            logger.warning('Dota GSI resolve failed user=%s error=%s', user.get('id'), exc)
+
+    async def _safe_resolve_cs2_gsi_prediction(self, user: dict[str, Any], settings: dict[str, Any], state: dict[str, Any]) -> None:
+        try:
+            await self._resolve_cs2_gsi_prediction(user, settings, state)
+        except Exception as exc:
+            set_user_auto_bet_error(int(user['id']), str(exc), error_at=time.time())
+            logger.warning('CS2 GSI resolve failed user=%s error=%s', user.get('id'), exc)
+
+    @staticmethod
+    def _infer_dota_win_outcome(state: dict[str, Any]) -> Optional[bool]:
+        player_team = AutoBetRuntime._normalize_dota_team(state.get('player_team'))
+        winner_team = AutoBetRuntime._normalize_dota_team(state.get('winner_team'))
+        radiant_win = state.get('radiant_win')
+        if player_team and isinstance(radiant_win, bool):
+            return radiant_win if player_team == 'radiant' else not radiant_win
+        if player_team and winner_team:
+            return player_team == winner_team
+        normalized_state = str(state.get('game_state') or '').upper()
+        if player_team and 'RADIANT' in normalized_state and 'WIN' in normalized_state:
+            return player_team == 'radiant'
+        if player_team and 'DIRE' in normalized_state and 'WIN' in normalized_state:
+            return player_team == 'dire'
+        return None
+
+    @staticmethod
+    def _infer_cs2_win_outcome(state: dict[str, Any]) -> Optional[bool]:
+        player_team = str(state.get('player_team') or '').strip().upper()
+        ct_score = int(state.get('ct_score') or 0)
+        t_score = int(state.get('t_score') or 0)
+        if player_team == 'CT':
+            return ct_score > t_score
+        if player_team in {'T', 'TERRORIST'}:
+            return t_score > ct_score
+        return None
 
     def _parse_gsi_allplayers(self, allplayers: dict[str, Any]) -> list[dict[str, Any]]:
         parsed: list[dict[str, Any]] = []
@@ -1399,7 +1614,7 @@ class AutoBetRuntime:
     @staticmethod
     def _gsi_match_is_finished(state: dict[str, Any]) -> bool:
         normalized_state = str(state.get('game_state') or '').upper()
-        return any(value in normalized_state for value in {'POST_GAME', 'GAME_OVER', 'GAME_ENDED', 'DISCONNECT'})
+        return any(value in normalized_state for value in {'POST_GAME', 'GAME_OVER', 'GAME_ENDED'})
 
     @staticmethod
     def _normalize_dota_team(value: Any) -> str:
@@ -1501,7 +1716,14 @@ class AutoBetRuntime:
         if len(parts) != 4:
             return
         _, match_id, kind, raw_value = parts
-        if match_id and state.get('match_id') and str(state.get('match_id')) != str(match_id):
+        state_match_id = str(state.get('match_id') or self._active_cs2_match_id(settings) or '').strip()
+        if not self._match_ids_compatible(match_id, state_match_id):
+            logger.info(
+                'CS2 GSI resolve skipped user=%s signature_match_id=%s state_match_id=%s',
+                user.get('id'),
+                match_id,
+                state_match_id,
+            )
             return
         kills_value = int(state.get('kills') or settings.get('gsi_kills') or 0)
         deaths_value = int(state.get('deaths') or settings.get('gsi_deaths') or 0)
@@ -1514,16 +1736,10 @@ class AutoBetRuntime:
         elif kind == 'assists_over':
             first_outcome_won = assists_value > self._int_value(raw_value)
         elif kind == 'win':
-            player_team = str(state.get('player_team') or '').upper()
-            ct_score = int(state.get('ct_score') or 0)
-            t_score = int(state.get('t_score') or 0)
-            if player_team == 'CT':
-                first_outcome_won = ct_score > t_score
-            elif player_team in {'T', 'TERRORIST'}:
-                first_outcome_won = t_score > ct_score
-            else:
+            first_outcome_won = self._infer_cs2_win_outcome(state)
+            if first_outcome_won is None:
                 logger.info(
-                    'CS2 GSI resolve skipped user=%s match_id=%s because player_team is unknown',
+                    'CS2 GSI resolve skipped user=%s match_id=%s because player_team/score is incomplete',
                     user.get('id'),
                     match_id,
                 )
@@ -1564,7 +1780,14 @@ class AutoBetRuntime:
         if len(parts) != 4:
             return
         _, match_id, kind, raw_value = parts
-        if match_id and state.get('match_id') and str(state.get('match_id')) != str(match_id):
+        state_match_id = str(state.get('match_id') or self._active_dota_match_id(settings) or '').strip()
+        if not self._match_ids_compatible(match_id, state_match_id):
+            logger.info(
+                'Dota GSI resolve skipped user=%s signature_match_id=%s state_match_id=%s',
+                user.get('id'),
+                match_id,
+                state_match_id,
+            )
             return
         first_outcome_won: Optional[bool]
         if kind == 'kills_over':
@@ -1576,19 +1799,8 @@ class AutoBetRuntime:
         elif kind == 'duration_over':
             first_outcome_won = int(state.get('game_time') or 0) > self._int_value(raw_value) * 60
         elif kind == 'win':
-            player_team = self._normalize_dota_team(state.get('player_team'))
-            winner_team = self._normalize_dota_team(state.get('winner_team'))
-            radiant_win = state.get('radiant_win')
-            if player_team and isinstance(radiant_win, bool):
-                first_outcome_won = radiant_win if player_team == 'radiant' else not radiant_win
-            elif player_team and winner_team:
-                first_outcome_won = player_team == winner_team
-            else:
-                set_user_auto_bet_error(
-                    int(user['id']),
-                    'Dota GSI не прислал понятный итог матча. Закрой ставку вручную или дождись следующего обновления.',
-                    error_at=time.time(),
-                )
+            first_outcome_won = self._infer_dota_win_outcome(state)
+            if first_outcome_won is None:
                 logger.info(
                     'Dota GSI resolve skipped user=%s match_id=%s because winner data is missing',
                     user.get('id'),
