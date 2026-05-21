@@ -1,51 +1,65 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --color-background: oklch(0.985 0 0);
-  --color-foreground: oklch(0.145 0 0);
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Syne", "Plus Jakarta Sans", ui-sans-serif, sans-serif;
+
+  --color-background: oklch(0.985 0.004 280);
+  --color-foreground: oklch(0.18 0.02 280);
   --color-card: oklch(1 0 0);
-  --color-card-foreground: oklch(0.145 0 0);
+  --color-card-foreground: oklch(0.18 0.02 280);
   --color-popover: oklch(1 0 0);
-  --color-popover-foreground: oklch(0.145 0 0);
-  --color-primary: oklch(0.205 0 0);
-  --color-primary-foreground: oklch(0.985 0 0);
-  --color-secondary: oklch(0.97 0 0);
-  --color-secondary-foreground: oklch(0.205 0 0);
-  --color-muted: oklch(0.97 0 0);
-  --color-muted-foreground: oklch(0.556 0 0);
-  --color-accent: oklch(0.97 0 0);
-  --color-accent-foreground: oklch(0.205 0 0);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-border: oklch(0.922 0 0);
-  --color-input: oklch(0.922 0 0);
-  --color-ring: oklch(0.708 0 0);
-  --radius: 0.75rem;
+  --color-popover-foreground: oklch(0.18 0.02 280);
+  --color-primary: oklch(0.62 0.2 25);
+  --color-primary-foreground: oklch(0.99 0 0);
+  --color-secondary: oklch(0.96 0.008 280);
+  --color-secondary-foreground: oklch(0.28 0.03 280);
+  --color-muted: oklch(0.96 0.006 280);
+  --color-muted-foreground: oklch(0.5 0.02 280);
+  --color-accent: oklch(0.94 0.02 280);
+  --color-accent-foreground: oklch(0.22 0.03 280);
+  --color-destructive: oklch(0.55 0.22 25);
+  --color-border: oklch(0.9 0.01 280);
+  --color-input: oklch(0.9 0.01 280);
+  --color-ring: oklch(0.62 0.2 25);
+  --color-brand-teal: oklch(0.72 0.12 180);
+  --color-brand-coral: oklch(0.68 0.19 25);
+  --radius: 0.875rem;
 }
 
 :root {
   color-scheme: light dark;
+  --mesh-coral: oklch(0.68 0.19 25 / 18%);
+  --mesh-violet: oklch(0.55 0.18 300 / 14%);
+  --mesh-teal: oklch(0.72 0.12 180 / 12%);
+  --glow-primary: oklch(0.62 0.2 25 / 35%);
+  --sidebar-glass: oklch(1 0 0 / 72%);
 }
 
 .dark {
-  --color-background: oklch(0.145 0 0);
-  --color-foreground: oklch(0.985 0 0);
-  --color-card: oklch(0.205 0 0);
-  --color-card-foreground: oklch(0.985 0 0);
-  --color-popover: oklch(0.205 0 0);
-  --color-popover-foreground: oklch(0.985 0 0);
-  --color-primary: oklch(0.922 0 0);
-  --color-primary-foreground: oklch(0.205 0 0);
-  --color-secondary: oklch(0.269 0 0);
-  --color-secondary-foreground: oklch(0.985 0 0);
-  --color-muted: oklch(0.269 0 0);
-  --color-muted-foreground: oklch(0.708 0 0);
-  --color-accent: oklch(0.269 0 0);
-  --color-accent-foreground: oklch(0.985 0 0);
-  --color-destructive: oklch(0.704 0.191 22.216);
-  --color-border: oklch(1 0 0 / 10%);
-  --color-input: oklch(1 0 0 / 15%);
-  --color-ring: oklch(0.556 0 0);
+  --color-background: oklch(0.12 0.025 280);
+  --color-foreground: oklch(0.97 0.004 280);
+  --color-card: oklch(0.16 0.028 280);
+  --color-card-foreground: oklch(0.97 0.004 280);
+  --color-popover: oklch(0.17 0.03 280);
+  --color-popover-foreground: oklch(0.97 0.004 280);
+  --color-primary: oklch(0.72 0.19 25);
+  --color-primary-foreground: oklch(0.14 0.02 280);
+  --color-secondary: oklch(0.22 0.035 280);
+  --color-secondary-foreground: oklch(0.94 0.006 280);
+  --color-muted: oklch(0.22 0.03 280);
+  --color-muted-foreground: oklch(0.68 0.02 280);
+  --color-accent: oklch(0.24 0.04 280);
+  --color-accent-foreground: oklch(0.96 0.006 280);
+  --color-destructive: oklch(0.65 0.2 25);
+  --color-border: oklch(1 0 0 / 9%);
+  --color-input: oklch(1 0 0 / 12%);
+  --color-ring: oklch(0.72 0.19 25);
+  --mesh-coral: oklch(0.68 0.19 25 / 22%);
+  --mesh-violet: oklch(0.52 0.2 300 / 18%);
+  --mesh-teal: oklch(0.72 0.12 180 / 16%);
+  --glow-primary: oklch(0.72 0.19 25 / 28%);
+  --sidebar-glass: oklch(0.14 0.03 280 / 78%);
 }
 
 @layer base {
@@ -54,10 +68,83 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background font-sans text-foreground antialiased;
   }
 
   #root {
     @apply min-h-screen;
+  }
+}
+
+@layer components {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .app-mesh-bg {
+    position: relative;
+    isolation: isolate;
+    background-color: var(--color-background);
+  }
+
+  .app-mesh-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% -10%, var(--mesh-coral), transparent 55%),
+      radial-gradient(ellipse 60% 45% at 90% 0%, var(--mesh-violet), transparent 50%),
+      radial-gradient(ellipse 55% 40% at 50% 100%, var(--mesh-teal), transparent 45%),
+      linear-gradient(180deg, var(--color-background), var(--color-background));
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-border/80 bg-card/90 text-card-foreground shadow-sm backdrop-blur-sm;
+    box-shadow:
+      0 1px 0 oklch(1 0 0 / 4%) inset,
+      0 12px 40px oklch(0 0 0 / 12%);
+  }
+
+  .dark .surface-card {
+    box-shadow:
+      0 1px 0 oklch(1 0 0 / 6%) inset,
+      0 16px 48px oklch(0 0 0 / 35%);
+  }
+
+  .brand-gradient {
+    background: linear-gradient(135deg, var(--color-brand-coral), oklch(0.58 0.2 300) 52%, var(--color-brand-teal));
+  }
+
+  .brand-gradient-text {
+    background: linear-gradient(135deg, var(--color-brand-coral), oklch(0.7 0.16 300) 48%, var(--color-brand-teal));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .btn-brand {
+    background: linear-gradient(135deg, oklch(0.68 0.19 25), oklch(0.58 0.2 300) 48%, oklch(0.62 0.14 180));
+    color: oklch(0.99 0 0);
+    box-shadow: 0 8px 28px var(--glow-primary);
+  }
+
+  .btn-brand:hover {
+    filter: brightness(1.06);
+    box-shadow: 0 10px 36px var(--glow-primary);
+  }
+
+  .sidebar-glass {
+    background: var(--sidebar-glass);
+    backdrop-filter: blur(20px) saturate(1.2);
+  }
+
+  .login-mesh {
+    background:
+      radial-gradient(ellipse 90% 60% at 0% 0%, var(--mesh-coral), transparent 50%),
+      radial-gradient(ellipse 70% 50% at 100% 20%, var(--mesh-violet), transparent 45%),
+      radial-gradient(ellipse 60% 45% at 40% 100%, var(--mesh-teal), transparent 40%),
+      var(--color-background);
   }
 }

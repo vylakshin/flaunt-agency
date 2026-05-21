@@ -19,6 +19,7 @@ import {
 import { useEffect, useState, type ComponentType } from "react"
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom"
 
+import { BrandLogo } from "@/components/app/brand-logo"
 import { ThemeProvider, useTheme } from "@/components/app/theme-provider"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -89,18 +90,12 @@ export function AppFrame() {
         <Sidebar className={isSidebarCollapsed ? "lg:w-20" : "lg:w-72"}>
           <div className="flex h-full flex-col">
             <SidebarHeader>
-              <div className={isSidebarCollapsed ? "flex items-center justify-center" : "flex items-center gap-3"}>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  QB
-                </div>
-                <div className={isSidebarCollapsed ? "hidden" : "min-w-0"}>
-                  <div className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">QUUUIZBOT</div>
-                  <div className="truncate font-semibold">Панель управления</div>
-                </div>
+              <div className={isSidebarCollapsed ? "flex justify-center" : ""}>
+                <BrandLogo compact={isSidebarCollapsed} />
               </div>
               <button
                 type="button"
-                className="mt-3 hidden w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:flex"
+                className="mt-3 hidden w-full items-center justify-center gap-2 rounded-xl border border-border/60 px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/30 hover:bg-accent/80 hover:text-foreground lg:flex"
                 onClick={() => setSidebarCollapsed((value) => !value)}
                 aria-label={isSidebarCollapsed ? "Развернуть сайдбар" : "Свернуть сайдбар"}
                 title={isSidebarCollapsed ? "Развернуть" : "Свернуть"}
@@ -134,7 +129,7 @@ export function AppFrame() {
 
             <SidebarFooter>
               {isLoading || !data ? (
-                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full rounded-xl" />
               ) : (
                 <ChannelMenu
                   collapsed={isSidebarCollapsed}
@@ -148,8 +143,14 @@ export function AppFrame() {
           </div>
         </Sidebar>
 
-        <main className={isSidebarCollapsed ? "flex-1 lg:ml-20" : "flex-1 lg:ml-72"}>
-          <div className={isGiveawaysPage ? "mx-auto flex min-h-screen w-full max-w-none flex-col gap-6 p-4 lg:p-6" : "mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 p-4 lg:p-8"}>
+        <main className={`app-mesh-bg ${isSidebarCollapsed ? "flex-1 lg:ml-20" : "flex-1 lg:ml-72"}`}>
+          <div
+            className={
+              isGiveawaysPage
+                ? "mx-auto flex min-h-screen w-full max-w-none flex-col gap-8 p-4 lg:p-6"
+                : "mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 p-4 lg:p-8"
+            }
+          >
             <Outlet key={data?.active_channel.id ?? "loading"} />
           </div>
         </main>
@@ -178,7 +179,11 @@ function ChannelMenu({
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
         <button
-          className={collapsed ? "group relative flex w-full items-center justify-center rounded-xl border bg-background p-2 text-left shadow-sm transition-colors hover:bg-accent" : "flex w-full items-center justify-between gap-3 rounded-xl border bg-background px-3 py-2.5 text-left shadow-sm transition-colors hover:bg-accent"}
+          className={
+            collapsed
+              ? "group relative flex w-full items-center justify-center rounded-xl border border-border/60 bg-card/60 p-2 text-left shadow-sm backdrop-blur-sm transition-colors hover:border-primary/30 hover:bg-accent/80"
+              : "flex w-full items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/60 px-3 py-2.5 text-left shadow-sm backdrop-blur-sm transition-colors hover:border-primary/30 hover:bg-accent/80"
+          }
           title={collapsed ? `${active.display_name || active.login} · управление` : undefined}
           type="button"
         >
@@ -186,7 +191,7 @@ function ChannelMenu({
             <ChannelAvatar label={active.display_name || active.login} src={active.profile_image_url} />
             <div className={collapsed ? "hidden" : "min-w-0"}>
               <div className="truncate font-medium">{active.display_name || active.login}</div>
-              <div className="truncate text-sm text-muted-foreground">Управление</div>
+              <div className="truncate text-sm text-muted-foreground">Управление каналом</div>
             </div>
           </div>
           {collapsed ? (
@@ -205,15 +210,17 @@ function ChannelMenu({
           align="end"
           sideOffset={isMobile ? 8 : 12}
           collisionPadding={12}
-          className="z-50 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-xl"
+          className="z-50 w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-border/80 bg-popover/95 p-1.5 text-popover-foreground shadow-2xl backdrop-blur-xl"
         >
-          <div className="px-3 py-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">Доступные каналы</div>
+          <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Доступные каналы
+          </div>
 
           {data.channels.map((channel) => (
             <DropdownMenu.Item asChild key={channel.id}>
               <button
                 type="button"
-                className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm outline-none hover:bg-accent disabled:cursor-default disabled:opacity-70"
+                className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm outline-none hover:bg-accent disabled:cursor-default disabled:opacity-70"
                 onClick={() => onSwitch(channel.id)}
                 disabled={switchingChannelId !== null}
               >
@@ -221,7 +228,7 @@ function ChannelMenu({
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="truncate font-medium">{channel.display_name || channel.login}</span>
-                    {channel.role === "owner" ? <Badge className="px-1.5 py-0 text-[10px] uppercase">Я</Badge> : null}
+                    {channel.role === "owner" ? <Badge variant="brand" className="px-1.5 py-0 text-[10px] uppercase">Я</Badge> : null}
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">twitch.tv/{channel.login}</span>
                 </span>
@@ -234,11 +241,11 @@ function ChannelMenu({
             </DropdownMenu.Item>
           ))}
 
-          <div className="my-1 h-px bg-border" />
+          <div className="my-1 h-px bg-border/60" />
 
           {data.is_admin ? (
             <DropdownMenu.Item asChild>
-              <Link to="/admin" className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm outline-none hover:bg-accent">
+              <Link to="/admin" className="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm outline-none hover:bg-accent">
                 <Settings className="size-4" />
                 <span>Админ-панель</span>
               </Link>
@@ -249,19 +256,19 @@ function ChannelMenu({
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm outline-none hover:bg-accent"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none hover:bg-accent"
             >
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
               <span>{theme === "dark" ? "Светлая тема" : "Тёмная тема"}</span>
             </button>
           </DropdownMenu.Item>
 
-          <div className="my-1 h-px bg-border" />
+          <div className="my-1 h-px bg-border/60" />
 
           <form action="/logout" method="post" className="w-full">
             <button
               type="submit"
-              className="flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm outline-none hover:bg-accent"
+              className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-left text-sm outline-none hover:bg-accent"
             >
               <LogOut className="size-4" />
               <span>Выйти</span>
@@ -293,10 +300,7 @@ function NavMenuLink({
         title={collapsed ? item.label : undefined}
         aria-label={item.label}
         className={({ isActive }) =>
-          [
-            sidebarMenuButtonVariants({ isActive }),
-            collapsed ? "group relative justify-center px-0" : "",
-          ].filter(Boolean).join(" ")
+          [sidebarMenuButtonVariants({ isActive }), collapsed ? "group relative justify-center px-0" : "pl-4"].filter(Boolean).join(" ")
         }
       >
         <Icon className="size-4 shrink-0" />
@@ -309,7 +313,7 @@ function NavMenuLink({
 
 function CollapsedTooltip({ label }: { label: string }) {
   return (
-    <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-md border bg-popover px-2.5 py-1.5 text-xs font-medium text-popover-foreground shadow-lg group-hover:block">
+    <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden -translate-y-1/2 whitespace-nowrap rounded-lg border border-border/80 bg-popover px-2.5 py-1.5 text-xs font-medium text-popover-foreground shadow-xl group-hover:block">
       {label}
     </span>
   )
@@ -319,11 +323,11 @@ function ChannelAvatar({ label, src }: { label: string; src?: string }) {
   const initial = (label || "U").slice(0, 1).toUpperCase()
 
   if (src) {
-    return <img alt="" className="size-10 shrink-0 rounded-full object-cover" src={src} />
+    return <img alt="" className="size-10 shrink-0 rounded-full object-cover ring-2 ring-border/60" src={src} />
   }
 
   return (
-    <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 via-violet-500 to-cyan-500 text-sm font-semibold text-white">
+    <div className="brand-gradient flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white ring-2 ring-white/10">
       {initial}
     </div>
   )

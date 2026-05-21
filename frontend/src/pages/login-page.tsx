@@ -1,7 +1,8 @@
-import { Bot, LogIn, Radio, ShieldCheck, Sparkles } from "lucide-react"
+import { Bot, LogIn, Radio, ShieldCheck, Sparkles, Zap } from "lucide-react"
 import { useEffect, useMemo } from "react"
 import { useSearchParams } from "react-router-dom"
 
+import { BrandLogo } from "@/components/app/brand-logo"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,7 +14,7 @@ export function LoginPage() {
   const warning = params.get("warning") || ""
 
   useEffect(() => {
-    document.title = "QUUUIZBOT — вход"
+    document.title = "Flaunt — вход"
   }, [])
 
   const statusCards = useMemo(
@@ -26,27 +27,26 @@ export function LoginPage() {
   )
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 text-foreground sm:px-6 lg:px-8">
+    <main className="login-mesh min-h-screen px-4 py-6 text-foreground sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl flex-col">
         <header className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
-              QB
-            </div>
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">QUUUIZBOT</div>
-              <div className="font-semibold">Панель управления</div>
-            </div>
-          </div>
+          <BrandLogo />
+          <Badge variant="brand" className="hidden gap-1.5 sm:inline-flex">
+            <Zap className="size-3" />
+            Twitch-инструменты
+          </Badge>
         </header>
 
-        <section className="grid flex-1 items-center gap-8 py-10 lg:grid-cols-[1fr_420px]">
-          <div className="max-w-2xl space-y-6">
-            <Badge variant="outline">Twitch-бот</Badge>
+        <section className="grid flex-1 items-center gap-10 py-10 lg:grid-cols-[1.1fr_420px] lg:gap-14">
+          <div className="max-w-2xl space-y-8">
             <div className="space-y-4">
-              <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Управляй ботом без лишних вкладок.</h1>
+              <Badge variant="outline">Всё для стрима в одном месте</Badge>
+              <h1 className="font-display text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.25rem]">
+                Управляй каналом <span className="brand-gradient-text">без хаоса</span>
+              </h1>
               <p className="max-w-xl text-base leading-7 text-muted-foreground">
-                Команды, таймеры, викторина, розыгрыши и доступы модераторов собраны в одной панели.
+                Викторина, команды, розыгрыши, автоставки и таймеры — единая панель с быстрым доступом и понятной
+                структурой.
               </p>
             </div>
 
@@ -54,14 +54,14 @@ export function LoginPage() {
               {statusCards.map((item) => {
                 const Icon = item.icon
                 return (
-                  <Card key={item.label}>
+                  <Card key={item.label} className="border-border/60 bg-card/70">
                     <CardContent className="space-y-3 p-4">
-                      <div className="flex size-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
                         <Icon className="size-5" />
                       </div>
                       <div>
-                        <div className="font-medium">{item.label}</div>
-                        <div className="mt-1 text-sm text-muted-foreground">{item.value}</div>
+                        <div className="font-semibold">{item.label}</div>
+                        <div className="mt-1 text-sm leading-relaxed text-muted-foreground">{item.value}</div>
                       </div>
                     </CardContent>
                   </Card>
@@ -70,14 +70,16 @@ export function LoginPage() {
             </div>
           </div>
 
-          <Card className="w-full shadow-xl">
-            <CardHeader className="space-y-3">
-              <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+          <Card className="border-border/70 bg-card/80 shadow-2xl backdrop-blur-xl">
+            <CardHeader className="space-y-4">
+              <div className="brand-gradient flex size-12 items-center justify-center rounded-2xl text-white shadow-lg">
                 <Sparkles className="size-5" />
               </div>
               <div>
                 <CardTitle className="text-2xl">Вход через Twitch</CardTitle>
-                <CardDescription>Авторизация нужна, чтобы привязать канал и проверить доступ к управлению.</CardDescription>
+                <CardDescription>
+                  Авторизация нужна, чтобы привязать канал и проверить права владельца или модератора.
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -94,7 +96,7 @@ export function LoginPage() {
                 </Alert>
               ) : null}
 
-              <Button asChild className="h-12 w-full text-base">
+              <Button asChild variant="brand" size="lg" className="w-full">
                 <a href="/auth/twitch/login">
                   <LogIn className="size-5" />
                   Войти через Twitch
@@ -102,7 +104,8 @@ export function LoginPage() {
               </Button>
 
               <p className="text-center text-xs leading-5 text-muted-foreground">
-                После входа откроется дашборд выбранного канала. Если ты модератор другого канала, он появится в переключателе снизу сайдбара.
+                После входа откроется дашборд выбранного канала. Каналы модератора доступны в переключателе внизу
+                сайдбара.
               </p>
             </CardContent>
           </Card>
