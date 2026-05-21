@@ -1,0 +1,9 @@
+[Unit]
+Description=Auto-update Twitch Guess Game from GitHub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/twitch_guess_game_mvp
+ExecStart=/opt/twitch_guess_game_mvp/deploy/auto-update.sh

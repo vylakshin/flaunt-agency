@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Twitch Guess Game auto-update every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=15s
+Unit=twitch-guess-game-auto-update.service
+
+[Install]
+WantedBy=timers.target
