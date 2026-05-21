@@ -1,0 +1,71 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/overlay/static/autobet-overlay.css?v={{ asset_version }}" />
+  </head>
+  <body>
+    <div id="overlay" class="bet-overlay hidden">
+      <div class="bet-card">
+        <div id="bet-question" class="bet-question">Who wins?</div>
+
+        <div class="bet-headings">
+          <div id="left-title" class="bet-option-title">A</div>
+          <div id="right-title" class="bet-option-title bet-option-title-right">B</div>
+        </div>
+
+        <div class="bet-top-row">
+          <section class="bet-top-card bet-top-card-left">
+            <div class="bet-top-inline">
+              <div class="bet-top-main">
+                <span class="bet-top-icon">◉</span>
+                <span id="left-points" class="bet-top-points">0</span>
+              </div>
+              <div id="left-top-name" class="bet-top-name">--</div>
+            </div>
+          </section>
+
+          <div class="bet-center">
+            <div id="bet-timer" class="bet-timer">00:00</div>
+            <div id="bet-closed" class="bet-closed hidden">СТАВКА ЗАКРЫТА</div>
+          </div>
+
+          <section class="bet-top-card bet-top-card-right">
+            <div class="bet-top-inline bet-top-inline-right">
+              <div id="right-top-name" class="bet-top-name bet-top-name-right">--</div>
+              <div class="bet-top-main bet-top-main-right">
+                <span id="right-points" class="bet-top-points">0</span>
+                <span class="bet-top-icon">◉</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="bet-bottom-row">
+          <section class="bet-chance bet-chance-left">
+            <div id="left-fill" class="bet-chance-fill bet-chance-fill-left"></div>
+            <div class="bet-chance-content">
+              <span id="left-chance" class="bet-chance-value">0%</span>
+            </div>
+          </section>
+
+          <section class="bet-chance bet-chance-right">
+            <div id="right-fill" class="bet-chance-fill bet-chance-fill-right"></div>
+            <div class="bet-chance-content bet-chance-content-right">
+              <span id="right-chance" class="bet-chance-value">0%</span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.AUTOBET_OVERLAY_CONFIG = {
+        stateUrl: {{ autobet_state_url|tojson }},
+      };
+    </script>
+    <script src="/overlay/static/autobet-overlay.js?v={{ asset_version }}"></script>
+  </body>
+</html>

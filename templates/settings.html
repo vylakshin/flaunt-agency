@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <script>
+      (() => {
+        const storedTheme = window.localStorage.getItem('site-theme');
+        const theme = storedTheme === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ site_css_url }}" />
+  </head>
+  <body class="site-body">
+    <main class="dashboard-shell">
+      <div class="app-shell">
+        <aside class="app-sidebar">
+          {% include '_app_sidebar.html' %}
+        </aside>
+
+        <div class="app-content settings-page">
+          <header class="topbar">
+            <div class="stack-sm">
+              <div class="dashboard-identity">
+                <div class="dashboard-heading">
+                  <h1>Настройки</h1>
+                  <p class="muted">Служебный раздел для управления администраторами и доступом к внутренним страницам.</p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {% if saved %}
+          <section class="notice success transient-notice" data-autohide="6000">Изменения сохранены.</section>
+          {% endif %}
+          {% if error %}
+          <section class="notice error transient-notice" data-autohide="8000">{{ error }}</section>
+          {% endif %}
+          {% if warning %}
+          <section class="notice success transient-notice" data-autohide="6000">{{ warning }}</section>
+          {% endif %}
+
+          <section class="card stats-hero-card">
+            <div class="card-header compact-header">
+              <div class="sidebar-kicker">Админы</div>
+              <h2>Текущие администраторы</h2>
+              <p class="muted">Обновлено {{ settings_updated_at }}. Эти пользователи видят служебные разделы и могут назначать новых администраторов.</p>
+            </div>
+            <div class="card-content">
+              <div class="admin-grid">
+                {% for admin in admin_users %}
+                <article class="admin-card">
+                  <div class="admin-card-head">
+                    <strong>{{ admin.display_name }}</strong>
+                    <span class="status-badge status-success">Администратор</span>
+                  </div>
+                  <div class="channel-login">@{{ admin.login }}</div>
+                  <div class="channel-meta">
+                    <span>Подключён: {{ admin.created_at_formatted }}</span>
+                    <span>Обновлён: {{ admin.updated_at_formatted }}</span>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+            </div>
+          </section>
+
+          <section class="card">
+            <div class="card-header compact-header">
+              <div class="sidebar-kicker">Права</div>
+              <h2>Кого можно сделать администратором</h2>
+              <p class="muted">Показываю последние аккаунты, которые уже входили в кабинет. Бот-аккаунт сюда не попадает.</p>
+            </div>
+            <div class="card-content">
+              {% if admin_candidates %}
+              <div class="channel-list">
+                {% for candidate in admin_candidates %}
+                <article class="channel-row channel-row-admin">
+                  <div class="channel-main">
+                    <div class="channel-title-row">
+                      <div>
+                        <strong class="channel-name">{{ candidate.display_name }}</strong>
+                        <div class="channel-login">@{{ candidate.login }}</div>
+                      </div>
+                      <form action="/settings/admins/grant" method="post">
+                        <input type="hidden" name="user_id" value="{{ candidate.id }}" />
+                        <button class="primary-btn" type="submit">Сделать администратором</button>
+                      </form>
+                    </div>
+                    <div class="channel-meta">
+                      <span>Подключён: {{ candidate.created_at_formatted }}</span>
+                      <span>Последнее обновление: {{ candidate.updated_at_formatted }}</span>
+                    </div>
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="empty-state">
+                <strong>Новых кандидатов пока нет</strong>
+                <span>Сначала пользователь должен хотя бы один раз войти в кабинет через Twitch.</span>
+              </div>
+              {% endif %}
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const themeToggleButton = document.getElementById('theme-toggle');
+
+      function applySiteTheme(theme) {
+        const normalizedTheme = theme === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = normalizedTheme;
+        window.localStorage.setItem('site-theme', normalizedTheme);
+        if (!themeToggleButton) return;
+        const isDark = normalizedTheme === 'dark';
+        themeToggleButton.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
+        themeToggleButton.setAttribute('title', isDark ? 'Светлая тема' : 'Тёмная тема');
+      }
+
+      document.querySelectorAll('.transient-notice').forEach((notice) => {
+        const delay = Number(notice.dataset.autohide || 6000);
+        window.setTimeout(() => {
+          notice.classList.add('notice-exit');
+          window.setTimeout(() => notice.remove(), 220);
+        }, delay);
+      });
+
+      if (themeToggleButton) {
+        applySiteTheme(document.documentElement.dataset.theme);
+        themeToggleButton.addEventListener('click', () => {
+          const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          applySiteTheme(nextTheme);
+        });
+      }
+
+      document.querySelectorAll('.app-user-menu').forEach((menu) => {
+        menu.addEventListener('toggle', () => {
+          if (!menu.open) return;
+          document.querySelectorAll('.app-user-menu').forEach((otherMenu) => {
+            if (otherMenu !== menu) {
+              otherMenu.removeAttribute('open');
+            }
+          });
+        });
+      });
+
+      document.addEventListener('click', (event) => {
+        document.querySelectorAll('.app-user-menu[open]').forEach((menu) => {
+          if (!menu.contains(event.target)) {
+            menu.removeAttribute('open');
+          }
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          document.querySelectorAll('.app-user-menu[open]').forEach((menu) => menu.removeAttribute('open'));
+        }
+      });
+    </script>
+  </body>
+</html>

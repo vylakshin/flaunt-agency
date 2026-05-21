@@ -1,0 +1,16 @@
+[Unit]
+Description=Twitch Guess Game Web App
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/twitch_guess_game_mvp
+EnvironmentFile=/opt/twitch_guess_game_mvp/.env
+ExecStart=/opt/twitch_guess_game_mvp/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

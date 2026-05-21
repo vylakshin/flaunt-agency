@@ -1,0 +1,241 @@
+﻿:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  min-height: 100%;
+  background: transparent;
+  color: #f8fafc;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  position: relative;
+  overflow: hidden;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.bet-overlay {
+  position: fixed;
+  top: 86px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100vw - 64px));
+  pointer-events: none;
+}
+
+.bet-card {
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  padding: 0;
+}
+
+.bet-question {
+  text-align: center;
+  font-size: clamp(12px, 0.95vw, 16px);
+  line-height: 1.1;
+  font-weight: 800;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.bet-headings {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.bet-option-title {
+  font-size: clamp(9px, 0.72vw, 12px);
+  font-weight: 800;
+  text-transform: uppercase;
+  color: rgba(248, 250, 252, 0.96);
+}
+
+.bet-option-title-right {
+  text-align: right;
+}
+
+.bet-top-row {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.bet-top-card {
+  min-width: 0;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 12, 18, 0.72);
+  padding: 6px 9px;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
+}
+
+.bet-top-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.bet-top-inline-right {
+  justify-content: flex-end;
+}
+
+.bet-top-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: clamp(9px, 0.72vw, 12px);
+  font-weight: 800;
+}
+
+.bet-top-main-right {
+  justify-content: flex-end;
+}
+
+.bet-top-icon {
+  font-size: 0.88em;
+  opacity: 0.92;
+}
+
+.bet-top-points {
+  white-space: nowrap;
+}
+
+.bet-top-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(8px, 0.66vw, 11px);
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.bet-top-name-right {
+  text-align: right;
+}
+
+.bet-center {
+  min-width: 72px;
+  text-align: center;
+}
+
+.bet-timer,
+.bet-closed {
+  font-size: clamp(10px, 0.8vw, 13px);
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.bet-closed {
+  color: #f8fafc;
+}
+
+.bet-bottom-row {
+  margin-top: 8px;
+  --left-share: 1fr;
+  --right-share: 1fr;
+  display: grid;
+  grid-template-columns: minmax(0, var(--left-share)) minmax(0, var(--right-share));
+  gap: 0;
+  min-width: 0;
+}
+
+.bet-chance {
+  position: relative;
+  min-width: 0;
+  min-height: 34px;
+  overflow: hidden;
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, transform 0.25s ease;
+}
+
+.bet-chance-left {
+  border-radius: 10px 0 0 10px;
+  border-right: 0;
+}
+
+.bet-chance-right {
+  border-radius: 0 10px 10px 0;
+}
+
+.bet-chance-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0%;
+  border-radius: 0;
+  transition: width 0.35s ease;
+}
+
+.bet-chance-fill-left {
+  background: linear-gradient(90deg, rgba(61, 110, 255, 0.97) 0%, rgba(48, 91, 214, 0.97) 100%);
+  border-radius: 10px 0 0 10px;
+}
+
+.bet-chance-fill-right {
+  inset: 0 0 0 auto;
+  background: linear-gradient(90deg, rgba(224, 32, 141, 0.97) 0%, rgba(201, 18, 122, 0.97) 100%);
+  border-radius: 0 10px 10px 0;
+}
+
+.bet-chance-content {
+  position: relative;
+  z-index: 1;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.bet-chance-content-right {
+  justify-content: flex-end;
+}
+
+.bet-chance-value {
+  font-size: clamp(11px, 0.95vw, 16px);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.bet-top-card.is-winner,
+.bet-chance.is-winner {
+  border-color: rgba(16, 185, 129, 0.9);
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35), 0 0 22px rgba(16, 185, 129, 0.22);
+  transform: translateY(-1px);
+}
+
+.bet-top-card.is-loser,
+.bet-chance.is-loser {
+  opacity: 0.58;
+}
+
+@media (max-width: 720px) {
+  .bet-overlay {
+    top: 26px;
+    width: min(560px, calc(100vw - 20px));
+  }
+
+  .bet-card {
+    padding: 9px;
+  }
+}

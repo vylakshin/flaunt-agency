@@ -1,0 +1,42 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Twitch Guess Game Overlay</title>
+    <link rel="stylesheet" href="/overlay/static/styles.css" />
+  </head>
+  <body data-overlay-theme="neo">
+    <div class="overlay">
+      <div class="panel main-panel">
+        <div class="timer-bar">
+          <div id="timer" class="timer">00:00</div>
+        </div>
+
+        <div class="hint-block">
+          <div class="label center">Подсказка</div>
+          <div id="hint" class="hint large">Ожидание раунда…</div>
+        </div>
+
+        <div class="meta-row">
+          <div>
+            <div class="label">Категория</div>
+            <div id="category" class="category">—</div>
+          </div>
+        </div>
+
+        <div class="answer-block">
+          <div class="label center">Слово</div>
+          <div id="masked-answer" class="answer">—</div>
+          <div id="win-toast" class="win-toast hidden"></div>
+        </div>
+      </div>
+
+      <div id="top-panel" class="panel top-panel">
+        <div id="top-list" class="top-list small"></div>
+      </div>
+    </div>
+
+    <script src="/overlay/static/app.js"></script>
+  </body>
+</html>

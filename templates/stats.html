@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <script>
+      (() => {
+        const storedTheme = window.localStorage.getItem('site-theme');
+        const theme = storedTheme === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ site_css_url }}" />
+  </head>
+  <body class="site-body">
+    <main class="dashboard-shell">
+      <div class="app-shell">
+        <aside class="app-sidebar">
+          {% include '_app_sidebar.html' %}
+        </aside>
+
+        <div class="app-content stats-page">
+          <header class="topbar">
+            <div class="stack-sm">
+              <div class="dashboard-identity">
+                <div class="dashboard-heading">
+                  <h1>Статистика</h1>
+                  <p class="muted">Сводка по каналам, подключённым к боту, и текущему состоянию сервиса.</p>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <section class="card stats-hero-card">
+            <div class="card-header compact-header">
+              <div class="sidebar-kicker">Обзор</div>
+              <h2>Что происходит с ботом прямо сейчас</h2>
+              <p class="muted">Срез обновлён {{ stats_updated_at }} и показывает только живое состояние подключённых каналов.</p>
+            </div>
+            <div class="card-content">
+              <div class="stats-grid">
+                {% for card in stats_cards %}
+                <article class="stat-card">
+                  <span class="stat-label">{{ card.label }}</span>
+                  <strong class="stat-value">{{ card.value }}</strong>
+                  <p class="stat-description">{{ card.description }}</p>
+                </article>
+                {% endfor %}
+              </div>
+            </div>
+          </section>
+
+          <div class="stats-detail-grid">
+            <section class="card stats-highlight-card">
+              <div class="card-header compact-header">
+                <div class="sidebar-kicker">Метрики</div>
+                <h2>Дополнительная статистика</h2>
+                <p class="muted">Небольшой operational-срез по режимам, кастомизации и общему размеру базы.</p>
+              </div>
+              <div class="card-content">
+                <div class="stats-highlight-list">
+                  {% for item in stats_highlights %}
+                  <article class="stats-highlight-item">
+                    <span class="stats-highlight-label">{{ item.label }}</span>
+                    <strong class="stats-highlight-value">{{ item.value }}</strong>
+                  </article>
+                  {% endfor %}
+                </div>
+              </div>
+            </section>
+
+            <section class="card stats-insight-card">
+              <div class="card-header compact-header">
+                <div class="sidebar-kicker">Инсайты</div>
+                <h2>На что смотреть</h2>
+                <p class="muted">Пара быстрых выводов, чтобы с первого взгляда понимать здоровье сети каналов.</p>
+              </div>
+              <div class="card-content">
+                <ul class="flat-list compact-list">
+                  <li>Если «Чат реально подключён» заметно меньше числа подключённых каналов, значит часть каналов потеряла модератора или EventSub.</li>
+                  <li>Рост «Новых за 7 дней» помогает отслеживать, насколько бот сейчас органически подключают новые стримеры.</li>
+                  <li>Количество каналов с кастомными вопросами показывает, насколько глубоко пользователи уже адаптируют игру под себя.</li>
+                </ul>
+              </div>
+            </section>
+          </div>
+
+          <section class="card">
+            <div class="card-header compact-header">
+              <div class="sidebar-kicker">Каналы</div>
+              <h2>Недавно подключённые каналы</h2>
+              <p class="muted">Последние активные подключения к боту с текущими статусами и быстрым контекстом.</p>
+            </div>
+            <div class="card-content">
+              {% if recent_channels %}
+              <div class="channel-list">
+                {% for channel in recent_channels %}
+                <article class="channel-row">
+                  <div class="channel-main">
+                    <div class="channel-title-row">
+                      <div>
+                        <strong class="channel-name">{{ channel.display_name }}</strong>
+                        <div class="channel-login">@{{ channel.login }}</div>
+                      </div>
+                      <div class="channel-links">
+                        <a class="secondary-btn button-link" href="https://www.twitch.tv/{{ channel.login }}" target="_blank" rel="noreferrer">Канал</a>
+                        <a class="secondary-btn button-link" href="{{ channel.overlay_url }}" target="_blank" rel="noreferrer">Overlay</a>
+                      </div>
+                    </div>
+
+                    <div class="channel-meta">
+                      <span>Подключён: {{ channel.connected_at }}</span>
+                      <span>Последнее обновление: {{ channel.updated_at }}</span>
+                    </div>
+
+                    <div class="inline-status-row">
+                      {% if channel.is_live %}
+                      <span class="status-badge status-success">В эфире</span>
+                      {% else %}
+                      <span class="status-badge status-neutral">Оффлайн</span>
+                      {% endif %}
+
+                      {% if channel.chat_connected %}
+                      <span class="status-badge status-success">Чат активен</span>
+                      {% else %}
+                      <span class="status-badge status-danger">Чат не активен</span>
+                      {% endif %}
+
+                      {% if channel.turbo_mode %}
+                      <span class="status-badge status-neutral">Турбо</span>
+                      {% endif %}
+                      {% if channel.quiet_mode %}
+                      <span class="status-badge status-neutral">Тихий режим</span>
+                      {% endif %}
+                      {% if channel.uses_custom_config %}
+                      <span class="status-badge status-neutral">Кастомные вопросы</span>
+                      {% endif %}
+                    </div>
+
+                    {% if channel.is_live and channel.stream_title %}
+                    <div class="channel-stream-card">
+                      <strong>{{ channel.stream_title }}</strong>
+                      <span>
+                        {% if channel.stream_category %}{{ channel.stream_category }}{% else %}Без категории{% endif %}
+                        · {{ channel.viewer_count }} зрителей
+                      </span>
+                    </div>
+                    {% endif %}
+                  </div>
+                </article>
+                {% endfor %}
+              </div>
+              {% else %}
+              <div class="empty-state">
+                <strong>Подключённых каналов пока нет</strong>
+                <span>Как только кто-то активирует бота, здесь появится сводка по новым подключениям.</span>
+              </div>
+              {% endif %}
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const themeToggleButton = document.getElementById('theme-toggle');
+
+      function applySiteTheme(theme) {
+        const normalizedTheme = theme === 'light' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = normalizedTheme;
+        window.localStorage.setItem('site-theme', normalizedTheme);
+        if (!themeToggleButton) return;
+        const isDark = normalizedTheme === 'dark';
+        themeToggleButton.setAttribute('aria-label', isDark ? 'Включить светлую тему' : 'Включить тёмную тему');
+        themeToggleButton.setAttribute('title', isDark ? 'Светлая тема' : 'Тёмная тема');
+      }
+
+      if (themeToggleButton) {
+        applySiteTheme(document.documentElement.dataset.theme);
+        themeToggleButton.addEventListener('click', () => {
+          const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          applySiteTheme(nextTheme);
+        });
+      }
+
+      document.querySelectorAll('.app-user-menu').forEach((menu) => {
+        menu.addEventListener('toggle', () => {
+          if (!menu.open) return;
+          document.querySelectorAll('.app-user-menu').forEach((otherMenu) => {
+            if (otherMenu !== menu) {
+              otherMenu.removeAttribute('open');
+            }
+          });
+        });
+      });
+
+      document.addEventListener('click', (event) => {
+        document.querySelectorAll('.app-user-menu[open]').forEach((menu) => {
+          if (!menu.contains(event.target)) {
+            menu.removeAttribute('open');
+          }
+        });
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          document.querySelectorAll('.app-user-menu[open]').forEach((menu) => menu.removeAttribute('open'));
+        }
+      });
+    </script>
+  </body>
+</html>

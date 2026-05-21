@@ -1,0 +1,124 @@
+<div class="app-sidebar-panel">
+  <div class="app-sidebar-header">
+    <a class="app-sidebar-brand" href="/dashboard">
+      <span class="app-sidebar-brand-icon" aria-hidden="true">Q</span>
+      <span class="app-sidebar-brand-copy">
+        <span class="app-sidebar-eyebrow">Guess The Word</span>
+        <strong class="app-sidebar-title">Панель управления</strong>
+      </span>
+    </a>
+  </div>
+
+  <div class="app-sidebar-content">
+    <div class="app-sidebar-group">
+      <div class="app-sidebar-group-label">Навигация</div>
+      <nav class="app-nav" aria-label="Навигация по кабинету">
+        <a
+          class="app-nav-link {% if active_page == 'dashboard' %}is-active{% endif %}"
+          href="/dashboard"
+          aria-current="{% if active_page == 'dashboard' %}page{% else %}false{% endif %}"
+        >
+          <span class="app-nav-icon">D</span>
+          <span class="app-nav-copy">
+            <strong>Дашборд</strong>
+            <small>Настройки игры, overlay и управление ботом.</small>
+          </span>
+        </a>
+
+        {% if current_user_is_admin %}
+        <a
+          class="app-nav-link {% if active_page == 'stats' %}is-active{% endif %}"
+          href="/stats"
+          aria-current="{% if active_page == 'stats' %}page{% else %}false{% endif %}"
+        >
+          <span class="app-nav-icon">S</span>
+          <span class="app-nav-copy">
+            <strong>Статистика</strong>
+            <small>Сводка по подключённым каналам и активности бота.</small>
+          </span>
+        </a>
+
+        <a
+          class="app-nav-link {% if active_page == 'settings' %}is-active{% endif %}"
+          href="/settings"
+          aria-current="{% if active_page == 'settings' %}page{% else %}false{% endif %}"
+        >
+          <span class="app-nav-icon">A</span>
+          <span class="app-nav-copy">
+            <strong>Настройки</strong>
+            <small>Управление администраторами и служебными правами.</small>
+          </span>
+        </a>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
+
+  <div class="app-sidebar-footer">
+    <details class="app-user-menu">
+      <summary class="app-user-trigger">
+        <span class="app-user-summary">
+          <span class="app-user-avatar" aria-hidden="true">{{ (user.display_name or user.login or 'U')[:1]|upper }}</span>
+          <span class="app-user-copy">
+            <strong>{{ user.display_name }}</strong>
+            <small>@{{ user.login }}</small>
+          </span>
+        </span>
+        <span class="app-user-trigger-chevron" aria-hidden="true">⌃</span>
+      </summary>
+
+      <div class="app-user-menu-popover">
+        <div class="app-user-menu-header">
+          <span class="app-user-avatar" aria-hidden="true">{{ (user.display_name or user.login or 'U')[:1]|upper }}</span>
+          <span class="app-user-copy">
+            <strong>{{ user.display_name }}</strong>
+            <small>@{{ user.login }}</small>
+          </span>
+        </div>
+
+        <div class="app-user-menu-group">
+          <a class="app-user-menu-item" href="/dashboard">
+            <span class="app-user-menu-icon">⌘</span>
+            <span>Дашборд</span>
+          </a>
+          {% if current_user_is_admin %}
+          <a class="app-user-menu-item" href="/settings">
+            <span class="app-user-menu-icon">◦</span>
+            <span>Управление</span>
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="app-user-menu-group">
+          <button
+            class="app-user-menu-item app-user-menu-button"
+            type="button"
+            id="theme-toggle"
+            aria-label="Переключить тему"
+            title="Переключить тему"
+          >
+            <span class="app-user-menu-icon theme-toggle-inline-icon">
+              <svg class="theme-toggle-icon theme-toggle-icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"></circle>
+                <path d="M12 2v2.5M12 19.5V22M4.93 4.93l1.77 1.77M17.3 17.3l1.77 1.77M2 12h2.5M19.5 12H22M4.93 19.07l1.77-1.77M17.3 6.7l1.77-1.77"></path>
+              </svg>
+              <svg class="theme-toggle-icon theme-toggle-icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"></path>
+              </svg>
+            </span>
+            <span>Тема</span>
+          </button>
+        </div>
+
+        <div class="app-user-menu-group">
+          <form action="/logout" method="post" class="app-user-menu-form">
+            <button class="app-user-menu-item app-user-menu-button app-user-menu-danger" type="submit">
+              <span class="app-user-menu-icon">↪</span>
+              <span>Log out</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </details>
+  </div>
+</div>

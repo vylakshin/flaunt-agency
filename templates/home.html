@@ -1,0 +1,64 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ site_css_url }}" />
+  </head>
+  <body class="site-body">
+    <main class="hero-shell">
+      <section class="hero-card">
+        <div class="card-header hero-header">
+          <div class="stack-sm">
+            <p class="eyebrow">Twitch Guess Game</p>
+            <h1>Личный кабинет для настройки викторины на Twitch</h1>
+            <p class="lead">
+              Войди через Twitch, выдай боту модератора, выбери стандартный или кастомный конфиг
+              и получи персональную ссылку на overlay для OBS.
+            </p>
+          </div>
+          <div class="hero-badges">
+            <span class="status-badge status-neutral">OAuth через Twitch</span>
+            <span class="status-badge status-neutral">До 3 кастомных конфигов</span>
+            <span class="status-badge status-neutral">Персональный overlay</span>
+          </div>
+        </div>
+
+        <div class="card-content">
+          {% if error %}
+          <section class="notice error transient-notice" data-autohide="15000">{{ error }}</section>
+          {% endif %}
+          {% if warning %}
+          <section class="notice error transient-notice" data-autohide="15000">{{ warning }}</section>
+          {% endif %}
+
+          <div class="cta-row">
+            <a class="primary-btn" href="/auth/twitch/login">Войти через Twitch</a>
+          </div>
+
+          <div class="info-grid">
+            <article>
+              <div class="card-header compact-header">
+                <h2>1. Авторизация</h2>
+                <p class="muted">Подключаем Twitch-аккаунт и создаем отдельный профиль канала.</p>
+              </div>
+            </article>
+            <article>
+              <div class="card-header compact-header">
+                <h2>2. Модератор</h2>
+                <p class="muted">После входа выдай боту модератора командой <code>/mod {{ bot_login }}</code>.</p>
+              </div>
+            </article>
+            <article>
+              <div class="card-header compact-header">
+                <h2>3. Конфиги и overlay</h2>
+                <p class="muted">Выбирай стандартный конфиг или загружай до трех своих кастомных наборов вопросов.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

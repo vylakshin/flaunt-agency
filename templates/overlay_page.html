@@ -1,0 +1,56 @@
+﻿<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/overlay/static/styles.css?v={{ asset_version }}" />
+  </head>
+  <body data-overlay-theme="{{ overlay_theme or 'classic' }}" {% if overlay_preview %}data-overlay-preview="true"{% endif %}>
+    <div class="overlay">
+      <div class="panel main-panel">
+        <div class="timer-bar">
+          <div id="timer" class="timer">{% if overlay_preview %}00:18{% else %}00:00{% endif %}</div>
+        </div>
+
+        <div class="hint-block">
+          <div class="label center">Подсказка</div>
+          <div id="hint" class="hint large">{% if overlay_preview %}Музыкальный жанр{% else %}Ожидание раунда…{% endif %}</div>
+        </div>
+
+        <div class="meta-row">
+          <div>
+            <div class="label">Категория</div>
+            <div id="category" class="category">{% if overlay_preview %}Музыка{% else %}—{% endif %}</div>
+          </div>
+        </div>
+
+        <div class="answer-block">
+          <div class="label center">Слово</div>
+          <div id="masked-answer" class="answer">{% if overlay_preview %}_ А _ А _{% else %}—{% endif %}</div>
+          <div id="win-toast" class="win-toast {% if not overlay_preview %}hidden{% endif %}">{% if overlay_preview %}+100 очков viewer{% endif %}</div>
+        </div>
+      </div>
+
+      <div id="top-panel" class="panel top-panel">
+        <div id="top-list" class="top-list small">
+          {% if overlay_preview %}
+          <div class="top-item"><span class="place">1.</span><span class="name">viewer</span><span class="points">320</span></div>
+          <div class="top-item"><span class="place">2.</span><span class="name">nightbot</span><span class="points">180</span></div>
+          <div class="top-item"><span class="place">3.</span><span class="name">chat</span><span class="points">90</span></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if not overlay_preview %}
+    <script>
+      window.OVERLAY_CONFIG = {
+        stateUrl: {{ overlay_state_url|tojson }},
+        wsUrl: {{ overlay_ws_url|tojson }},
+      };
+    </script>
+    <script src="/overlay/static/app.js?v={{ asset_version }}"></script>
+    {% endif %}
+  </body>
+</html>
